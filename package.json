@@ -1,0 +1,35 @@
+{
+    "name": "@nera/plugin-utils",
+    "version": "1.0.0",
+    "description": "Utility helpers for Nera plugins, e.g., YAML config loading",
+    "main": "index.js",
+    "type": "module",
+    "exports": {
+        ".": "./index.js"
+    },
+    "keywords": [
+        "nera",
+        "plugin",
+        "utils",
+        "yaml",
+        "config"
+    ],
+    "author": "Michael Becker",
+    "license": "MIT",
+    "files": [
+        "index.js",
+        "README.md"
+    ],
+    "dependencies": {
+        "js-yaml": "^4.1.0"
+    },
+    "devDependencies": {
+        "vitest": "^3.2.4"
+    },
+    "scripts": {
+        "test": "vitest run"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}
