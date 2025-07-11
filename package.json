@@ -1,35 +1,33 @@
 {
-    "name": "@nera/plugin-utils",
-    "version": "1.0.0",
-    "description": "Utility helpers for Nera plugins, e.g., YAML config loading",
+    "name": "@nera-static/plugin-utils",
+    "version": "1.0.1",
+    "description": "Shared utility functions for Nera plugins (like config loading)",
     "main": "index.js",
     "type": "module",
-    "exports": {
-        ".": "./index.js"
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/seebaermichi/nera-plugin-utils.git"
     },
+    "bugs": {
+        "url": "https://github.com/seebaermichi/nera-plugin-utils/issues"
+    },
+    "homepage": "https://github.com/seebaermichi/nera-plugin-utils#readme",
     "keywords": [
         "nera",
+        "static-site-generator",
         "plugin",
         "utils",
-        "yaml",
-        "config"
+        "yaml"
     ],
     "author": "Michael Becker",
     "license": "MIT",
-    "files": [
-        "index.js",
-        "README.md"
-    ],
-    "dependencies": {
-        "js-yaml": "^4.1.0"
-    },
-    "devDependencies": {
-        "vitest": "^3.2.4"
-    },
-    "scripts": {
-        "test": "vitest run"
-    },
     "publishConfig": {
         "access": "public"
+    },
+    "devDependencies": {
+        "vitest": "^1.0.0"
+    },
+    "scripts": {
+        "test": "vitest"
     }
 }
