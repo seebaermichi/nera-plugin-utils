@@ -1,6 +1,6 @@
 {
     "name": "@nera-static/plugin-utils",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "description": "Shared utility functions for Nera plugins (like config loading)",
     "main": "index.js",
     "type": "module",

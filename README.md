@@ -7,7 +7,7 @@
 ## 📦 Installation
 
 ```bash
-npm install @nera/plugin-utils
+npm install @nera-static/plugin-utils
 ```
 
 ---
