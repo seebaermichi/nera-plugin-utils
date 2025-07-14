@@ -1,4 +1,4 @@
-# @nera/plugin-utils
+# @nera-static/plugin-utils
 
 🛠 Utility helpers for developing plugins for the [Nera](https://github.com/seebaermichi/nera) static site generator.
 
