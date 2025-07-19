@@ -1,7 +1,7 @@
 {
     "name": "@nera-static/plugin-utils",
-    "version": "1.0.5",
-    "description": "Shared utility functions for Nera plugins (like config loading)",
+    "version": "1.1.0",
+    "description": "Shared utility functions for Nera plugins (config loading, template publishing)",
     "main": "index.js",
     "type": "module",
     "repository": {
@@ -17,7 +17,8 @@
         "static-site-generator",
         "plugin",
         "utils",
-        "yaml"
+        "yaml",
+        "templates"
     ],
     "author": "Michael Becker",
     "license": "MIT",
@@ -28,10 +29,15 @@
         "js-yaml": "^4.1.0"
     },
     "devDependencies": {
+        "eslint": "^9.17.0",
+        "husky": "^9.1.7",
         "vitest": "^3.2.4"
     },
     "scripts": {
-        "test": "vitest"
+        "test": "vitest",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "prepare": "git config core.hooksPath .husky || true"
     },
     "exports": {
         ".": "./index.js"
