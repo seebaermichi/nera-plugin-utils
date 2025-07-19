@@ -21,9 +21,9 @@ export default [
             'no-console': 'off',
             'prefer-const': 'error',
             'no-var': 'error',
-            'semi': ['error', 'never'],
-            'quotes': ['error', 'single'],
-            'indent': ['error', 4],
+            semi: ['error', 'never'],
+            quotes: ['error', 'single'],
+            indent: ['error', 4],
             'comma-dangle': ['error', 'never']
         }
     },

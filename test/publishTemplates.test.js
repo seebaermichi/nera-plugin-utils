@@ -1,47 +1,56 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { writeFileSync, unlinkSync, mkdirSync, rmSync, existsSync } from 'fs'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import {
     validateNeraProject,
     publishTemplates,
     publishAllTemplates
 } from '../index.js'
 
-const tempDir = './temp-test'
-const packageJsonPath = './package.json'
-const packageJsonBackup = './package.json.backup'
+const tempDir = resolve('./temp-test')
+const testProjectDir = join(tempDir, 'test-project')
+const sourceDir = join(tempDir, 'source')
 
 describe('validateNeraProject', () => {
+    let originalCwd
+
     beforeEach(() => {
-        // Backup existing package.json if it exists
-        if (existsSync(packageJsonPath)) {
-            writeFileSync(packageJsonBackup, JSON.stringify({}))
-        }
+        // Store original working directory
+        originalCwd = process.cwd()
+
+        // Create isolated test project directory
+        mkdirSync(testProjectDir, { recursive: true })
+
+        // Change to test directory
+        process.chdir(testProjectDir)
     })
 
     afterEach(() => {
+        // Return to original directory
+        process.chdir(originalCwd)
+
         // Clean up test files
-        if (existsSync(packageJsonPath)) {
-            unlinkSync(packageJsonPath)
-        }
-        if (existsSync(packageJsonBackup)) {
-            unlinkSync(packageJsonBackup)
+        if (existsSync(tempDir)) {
+            rmSync(tempDir, { recursive: true })
         }
     })
 
     it('returns true for dummy package (test override)', () => {
-        writeFileSync(packageJsonPath, JSON.stringify({ name: 'dummy' }))
+        writeFileSync('./package.json', JSON.stringify({ name: 'dummy' }))
         expect(validateNeraProject()).toBe(true)
     })
 
     it('returns true for nera package', () => {
-        writeFileSync(packageJsonPath, JSON.stringify({ name: 'nera-my-site' }))
+        writeFileSync(
+            './package.json',
+            JSON.stringify({ name: 'nera-my-site' })
+        )
         expect(validateNeraProject()).toBe(true)
     })
 
     it('returns false for non-nera package', () => {
         writeFileSync(
-            packageJsonPath,
+            './package.json',
             JSON.stringify({ name: 'some-other-package' })
         )
         expect(validateNeraProject()).toBe(false)
@@ -52,50 +61,47 @@ describe('validateNeraProject', () => {
     })
 
     it('returns false when package.json is invalid JSON', () => {
-        writeFileSync(packageJsonPath, 'invalid json')
+        writeFileSync('./package.json', 'invalid json')
         expect(validateNeraProject()).toBe(false)
     })
 })
 
 describe('publishTemplates', () => {
+    let originalCwd
+
     beforeEach(() => {
-        // Setup test environment
-        writeFileSync(packageJsonPath, JSON.stringify({ name: 'dummy' }))
+        // Store original working directory
+        originalCwd = process.cwd()
 
-        // Create source directory with test templates
-        mkdirSync(join(tempDir, 'source'), { recursive: true })
-        writeFileSync(
-            join(tempDir, 'source', 'template.pug'),
-            'div Template content'
-        )
-        writeFileSync(
-            join(tempDir, 'source', 'nested.pug'),
-            'div Nested template'
-        )
+        // Create isolated test project directory
+        mkdirSync(testProjectDir, { recursive: true })
+        mkdirSync(sourceDir, { recursive: true })
 
-        // Clean destination if exists
-        if (existsSync(join(tempDir, 'views'))) {
-            rmSync(join(tempDir, 'views'), { recursive: true })
-        }
+        // Change to test directory
+        process.chdir(testProjectDir)
+
+        // Setup test environment with package.json
+        writeFileSync('./package.json', JSON.stringify({ name: 'dummy' }))
+
+        // Create test templates in source directory
+        writeFileSync(join(sourceDir, 'template.pug'), 'div Template content')
+        writeFileSync(join(sourceDir, 'nested.pug'), 'div Nested template')
     })
 
     afterEach(() => {
-        // Clean up
+        // Return to original directory
+        process.chdir(originalCwd)
+
+        // Clean up test files
         if (existsSync(tempDir)) {
             rmSync(tempDir, { recursive: true })
-        }
-        if (existsSync(packageJsonPath)) {
-            unlinkSync(packageJsonPath)
-        }
-        if (existsSync('./views')) {
-            rmSync('./views', { recursive: true })
         }
     })
 
     it('publishes single template successfully', () => {
         const result = publishTemplates({
             pluginName: 'plugin-test',
-            sourceDir: join(tempDir, 'source'),
+            sourceDir: sourceDir,
             templateFiles: 'template.pug',
             expectedPackageName: 'dummy'
         })
@@ -107,7 +113,7 @@ describe('publishTemplates', () => {
     it('publishes multiple templates successfully', () => {
         const result = publishTemplates({
             pluginName: 'plugin-test',
-            sourceDir: join(tempDir, 'source'),
+            sourceDir: sourceDir,
             templateFiles: ['template.pug', 'nested.pug'],
             expectedPackageName: 'dummy'
         })
@@ -118,11 +124,11 @@ describe('publishTemplates', () => {
     })
 
     it('returns false when not in valid Nera project', () => {
-        unlinkSync(packageJsonPath)
+        unlinkSync('./package.json')
 
         const result = publishTemplates({
             pluginName: 'plugin-test',
-            sourceDir: join(tempDir, 'source'),
+            sourceDir: sourceDir,
             templateFiles: 'template.pug'
         })
 
@@ -135,7 +141,7 @@ describe('publishTemplates', () => {
 
         const result = publishTemplates({
             pluginName: 'plugin-test',
-            sourceDir: join(tempDir, 'source'),
+            sourceDir: sourceDir,
             templateFiles: 'template.pug',
             expectedPackageName: 'dummy'
         })
@@ -148,46 +154,42 @@ describe('publishTemplates', () => {
 })
 
 describe('publishAllTemplates', () => {
+    let originalCwd
+
     beforeEach(() => {
-        writeFileSync(packageJsonPath, JSON.stringify({ name: 'dummy' }))
+        // Store original working directory
+        originalCwd = process.cwd()
 
-        // Create source directory with multiple .pug files
-        mkdirSync(join(tempDir, 'source'), { recursive: true })
-        writeFileSync(
-            join(tempDir, 'source', 'template1.pug'),
-            'div Template 1'
-        )
-        writeFileSync(
-            join(tempDir, 'source', 'template2.pug'),
-            'div Template 2'
-        )
-        writeFileSync(
-            join(tempDir, 'source', 'not-template.txt'),
-            'Not a template'
-        )
+        // Create isolated test project directory
+        mkdirSync(testProjectDir, { recursive: true })
+        mkdirSync(sourceDir, { recursive: true })
 
-        // Clean destination if exists
-        if (existsSync('./views')) {
-            rmSync('./views', { recursive: true })
-        }
+        // Change to test directory
+        process.chdir(testProjectDir)
+
+        // Setup test environment with package.json
+        writeFileSync('./package.json', JSON.stringify({ name: 'dummy' }))
+
+        // Create multiple .pug files and one non-pug file
+        writeFileSync(join(sourceDir, 'template1.pug'), 'div Template 1')
+        writeFileSync(join(sourceDir, 'template2.pug'), 'div Template 2')
+        writeFileSync(join(sourceDir, 'not-template.txt'), 'Not a template')
     })
 
     afterEach(() => {
+        // Return to original directory
+        process.chdir(originalCwd)
+
+        // Clean up test files
         if (existsSync(tempDir)) {
             rmSync(tempDir, { recursive: true })
-        }
-        if (existsSync(packageJsonPath)) {
-            unlinkSync(packageJsonPath)
-        }
-        if (existsSync('./views')) {
-            rmSync('./views', { recursive: true })
         }
     })
 
     it('publishes all .pug templates', () => {
         const result = publishAllTemplates({
             pluginName: 'plugin-test',
-            sourceDir: join(tempDir, 'source'),
+            sourceDir: sourceDir,
             expectedPackageName: 'dummy'
         })
 
@@ -205,12 +207,12 @@ describe('publishAllTemplates', () => {
 
     it('handles directory with no .pug files', () => {
         // Remove .pug files, leave only .txt
-        unlinkSync(join(tempDir, 'source', 'template1.pug'))
-        unlinkSync(join(tempDir, 'source', 'template2.pug'))
+        unlinkSync(join(sourceDir, 'template1.pug'))
+        unlinkSync(join(sourceDir, 'template2.pug'))
 
         const result = publishAllTemplates({
             pluginName: 'plugin-test',
-            sourceDir: join(tempDir, 'source'),
+            sourceDir: sourceDir,
             expectedPackageName: 'dummy'
         })
 
