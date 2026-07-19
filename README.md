@@ -31,7 +31,9 @@ console.log(config.title)
 
 #### `validateNeraProject(expectedPackageName?: string): boolean`
 
-Validates if the current working directory is a valid Nera project by checking the `package.json`.
+Validates if the current working directory is a valid Nera project.
+
+A directory qualifies if it *looks* like a Nera project — it contains both `config/app.yaml` and `pages/` — or if its `package.json` name matches `expectedPackageName` or starts with `nera`. The shape check means a project can be named anything.
 
 ```js
 import { validateNeraProject } from '@nera-static/plugin-utils'
@@ -45,6 +47,8 @@ if (validateNeraProject()) {
 
 Publishes specific template files from a plugin to a Nera project.
 
+If `views/vendor/<pluginName>/` already exists, publishing is **skipped** and the function returns `true` — this protects the customizations you have made to previously published templates. Pass `force: true` to overwrite them.
+
 ```js
 import { publishTemplates } from '@nera-static/plugin-utils'
 
@@ -53,12 +57,15 @@ const result = publishTemplates({
     sourceDir: path.resolve(__dirname, '../views/'),
     templateFiles: ['template.pug', 'another-template.pug'], // or single file as string
     expectedPackageName: 'dummy', // optional, for testing
+    force: false, // optional, re-publish over an existing destination
 })
 ```
 
+Returns `false` if any listed template is missing from `sourceDir`. Sources are all verified before anything is copied, so a failure never leaves a partially published destination.
+
 #### `publishAllTemplates(options): boolean`
 
-Publishes all `.pug` template files from a plugin's views directory to a Nera project.
+Publishes all `.pug` template files from a plugin's views directory to a Nera project, **including those in subdirectories**, preserving their structure. A template that does `include partials/nav` therefore ships together with the partial it depends on.
 
 ```js
 import { publishAllTemplates } from '@nera-static/plugin-utils'
@@ -67,6 +74,7 @@ const result = publishAllTemplates({
     pluginName: 'plugin-my-awesome-plugin',
     sourceDir: path.resolve(__dirname, '../views/'),
     expectedPackageName: 'dummy', // optional, for testing
+    force: false, // optional, re-publish over an existing destination
 })
 ```
 
