@@ -1,5 +1,8 @@
 # @nera-static/plugin-utils
 
+[![Test](https://github.com/seebaermichi/nera-plugin-utils/actions/workflows/test.yml/badge.svg)](https://github.com/seebaermichi/nera-plugin-utils/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/npm/v/@nera-static/plugin-utils)](https://www.npmjs.com/package/@nera-static/plugin-utils)
+
 🛠 Utility helpers for developing plugins for the [Nera](https://github.com/seebaermichi/nera) static site generator.
 
 ---
