@@ -27,3 +27,6 @@ build/
 
 # Optional cache folders
 .cache/
+
+# npm credentials — never commit
+.npmrc

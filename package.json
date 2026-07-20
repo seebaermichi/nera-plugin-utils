@@ -37,7 +37,7 @@
         "test": "vitest",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-        "prepare": "git config core.hooksPath .husky || true"
+        "prepare": "husky"
     },
     "exports": {
         ".": "./index.js"
