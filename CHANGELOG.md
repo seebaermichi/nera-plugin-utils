@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.3.1] - 2026-07-21
+
+### Fixed
+
+-   corrected the "Example Plugin Structure" snippet in the README, which
+    taught the plugin contract wrongly in three ways: it used the signature
+    `getAppData(app)` instead of `getAppData(data)`, returned a bare object
+    instead of spreading `...data.app` (which silently discards every other
+    plugin's `app` data sitewide), and resolved config against `__dirname`,
+    which is undefined in ESM and points at the package rather than the
+    user's site
+-   documented that `getConfig` returns `{}` for a missing or empty file and
+    never throws, so plugins must supply a JS fallback for every key
+-   corrected `validateNeraProject`'s description: a `package.json` is
+    required unconditionally; the shape check is an alternative to the *name*
+    check, not to having a `package.json`
+-   documented that `publishAllTemplates` returns `true` when `sourceDir`
+    contains no `.pug` files, so a misconfigured publish script exits `0`
+    having copied nothing
+
+### Added
+
+-   `## 🧩 Compatibility`, `## 🧪 Development` and `## 🤝 Contributing`
+    sections; the Node requirement was previously stated nowhere
+
+### Changed
+
+-   License heading uses the fleet-standard `## 📦 License`
+
+
 ## [1.3.0] - 2026-07-21
 
 ### Changed

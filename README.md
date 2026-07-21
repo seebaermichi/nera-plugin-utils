@@ -23,11 +23,16 @@ npm install @nera-static/plugin-utils
 
 Reads and parses a YAML config file, returning its contents as a JavaScript object.
 
+Returns `{}` if the file does not exist or is empty — it never throws. **Supply a JS fallback for every key you read.**
+
+Plugins read config from the *user's* site, not from the package. The `config/<name>.yaml` shipped inside a plugin is documentation only; it is never merged with the user's copy. Resolve against `process.cwd()`:
+
 ```js
+import path from 'path'
 import { getConfig } from '@nera-static/plugin-utils'
 
-const config = getConfig('./path/to/config.yaml')
-console.log(config.title)
+const config = getConfig(path.resolve(process.cwd(), 'config/my-plugin.yaml'))
+const title = config.title || 'Default title'
 ```
 
 ### Template Publishing
@@ -36,7 +41,7 @@ console.log(config.title)
 
 Validates if the current working directory is a valid Nera project.
 
-A directory qualifies if it *looks* like a Nera project — it contains both `config/app.yaml` and `pages/` — or if its `package.json` name matches `expectedPackageName` or starts with `nera`. The shape check means a project can be named anything.
+A `package.json` must be present. Given that, the directory qualifies if it *looks* like a Nera project — it contains both `config/app.yaml` and `pages/` — or if its `package.json` name matches `expectedPackageName` or starts with `nera`. The shape check means a project can be named anything, but it does not remove the `package.json` requirement.
 
 ```js
 import { validateNeraProject } from '@nera-static/plugin-utils'
@@ -81,6 +86,10 @@ const result = publishAllTemplates({
 })
 ```
 
+Returns `true` and logs a warning if `sourceDir` contains no `.pug` files; an unreadable `sourceDir` returns `false`. A publish script following the `process.exit(result ? 0 : 1)` pattern below therefore exits `0` having copied nothing — check your `sourceDir` if a plugin's templates never appear.
+
+> The `__dirname` used in these option examples is not defined in ESM. See the CLI Integration example below for the two lines that define it.
+
 ### Template Publishing CLI Integration
 
 These functions are designed to be used in `bin/publish-template.js` scripts that can be executed via npm scripts:
@@ -119,18 +128,28 @@ This package is intended for use inside Nera plugins to:
 
 ```js
 // index.js - Main plugin file
+import path from 'path'
 import { getConfig } from '@nera-static/plugin-utils'
 
-export function getAppData(app) {
-    const config = getConfig(`${__dirname}/config/my-plugin.yaml`)
+export function getAppData(data) {
+    const config = getConfig(
+        path.resolve(process.cwd(), 'config/my-plugin.yaml')
+    )
 
+    // Spread the incoming app. The return value REPLACES `app` wholesale --
+    // returning a bare object discards every other plugin's data, silently.
     return {
+        ...data.app,
         myPlugin: {
             // ... plugin logic using config
         },
     }
 }
 ```
+
+A plugin exports `getAppData` and/or `getMetaData`. Both receive a single object — `{ app, pagesData }` — and both must be **synchronous**. `getAppData` must return a plain object, `getMetaData` an array; a wrong return type is skipped with a console warning while the build still succeeds, so a plugin that appears to "do nothing" is usually a return-type problem.
+
+See the [Nera contributing guide](https://github.com/seebaermichi/nera/blob/main/CONTRIBUTING.md) for the full plugin contract.
 
 ```js
 // bin/publish-template.js - Template publishing script
@@ -152,12 +171,46 @@ process.exit(result ? 0 : 1)
 
 ---
 
+## 🧪 Development
+
+```bash
+npx vitest run      # single pass -- `npm test` is watch mode
+npm run lint
+```
+
+---
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome. See the
+[Nera contributing guide](https://github.com/seebaermichi/nera/blob/main/CONTRIBUTING.md)
+for plugin development, the hook contract, and local setup.
+
+For this repo specifically:
+
+- `npx vitest run` and `npm run lint` must pass (`npm test` is watch mode).
+- Bump the version and update `CHANGELOG.md` **in the same commit** as the change.
+- Every plugin in the fleet depends on this package, so treat the exported
+  function signatures as a public contract — changing one is a **major** bump.
+- Releases publish from CI on a pushed `v*` tag. Never run `npm publish`.
+
+---
+
 ## 🧑‍💻 Maintainers
 
 Created and maintained by [@seebaermichi](https://github.com/seebaermichi)
 
 ---
 
-## 📄 License
+## 🧩 Compatibility
+
+- **Node.js**: >= 20.0.0
+- **Runtime dependency**: `js-yaml ^4.1.0` only
+- **Nera**: no direct dependency on the generator — this package is used by
+  plugins, not by the generator itself
+
+---
+
+## 📦 License
 
 MIT
