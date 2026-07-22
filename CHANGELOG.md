@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.4.0] - 2026-07-22
+
+### Added
+
+-   **`slugify(text)`** — turns a user-authored string into a URL-safe slug,
+    for anything that becomes a path segment, an HTML `id`, or a URL fragment.
+    `ß` → `ss`, NFKD with combining marks dropped, lowercase, runs of
+    non-alphanumerics collapsed to a single `-`, leading and trailing hyphens
+    trimmed. Idempotent; returns `''` when nothing usable remains
+
+    It lives here because two plugins had already written it independently and
+    only one got it right. The naive rule, `[^\w]+` → `-`, is ASCII-only:
+    `Über uns` becomes `-ber-uns` and `Straße` becomes `stra-e`. A leading
+    hyphen is legal in an HTML `id` but is **not a valid CSS identifier**, so
+    `#-ber-uns` matches nothing in a stylesheet and `querySelector` throws on
+    it. That shipped in `plugin-one-page` until its v3.0.0
+
+    Purely additive — no existing export changed. `plugin-tags`' `slugifyTag`
+    and `plugin-one-page`'s internal helper both delegate here as of
+    `plugin-tags` 3.2.1 and `plugin-one-page` 3.0.1, and both keep producing
+    byte-identical output; their test suites are reproduced here to prove it
+
 ## [1.3.1] - 2026-07-21
 
 ### Fixed

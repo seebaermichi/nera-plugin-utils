@@ -11,6 +11,43 @@ export function getConfig(filePath) {
 }
 
 /**
+ * Turns a user-authored string into a URL-safe slug, for anything that becomes
+ * a path segment, an HTML `id`, or a URL fragment.
+ *
+ * Lives here because plugins kept reinventing it and getting it wrong. The
+ * naive rule — `text.toLowerCase().replace(/[^\w]+/g, '-')` — is ASCII-only:
+ * `\w` is `[A-Za-z0-9_]`, so `Über uns` becomes `-ber-uns` and `Straße`
+ * becomes `stra-e`. A leading hyphen is legal in an HTML `id` but is **not** a
+ * valid CSS identifier, so `#-ber-uns` matches nothing in a stylesheet and
+ * `document.querySelector('#-ber-uns')` throws. That shipped in
+ * `plugin-one-page` until v3.0.0.
+ *
+ * The rule:
+ *   1. `ß` → `ss` first, because it has no NFKD decomposition and would
+ *      otherwise become a hyphen mid-word. The expansion is the same in every
+ *      language that uses it.
+ *   2. NFKD, then drop combining marks, so `é` → `e` rather than a hyphen.
+ *   3. Lowercase, collapse every remaining run of non-alphanumerics to a
+ *      single `-`, and trim leading and trailing hyphens.
+ *
+ * A string with no Latin letters or digits (`日本語`, `!!!`) yields `''`.
+ * Callers must decide what that means — omitting the element is usually better
+ * than emitting an empty `id`.
+ *
+ * @param {string} text - The string to slugify
+ * @returns {string} - URL-safe slug, or `''` if nothing usable remains
+ */
+export function slugify(text) {
+    return String(text)
+        .replace(/ß/g, 'ss')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+}
+
+/**
  * Validates if the current working directory is a valid Nera project
  *
  * A directory qualifies if it *looks* like a Nera project — it contains both

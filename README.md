@@ -35,6 +35,40 @@ const config = getConfig(path.resolve(process.cwd(), 'config/my-plugin.yaml'))
 const title = config.title || 'Default title'
 ```
 
+### Slugs
+
+#### `slugify(text: string): string`
+
+Turns a user-authored string into a URL-safe slug, for anything that becomes a path segment, an HTML `id`, or a URL fragment.
+
+```js
+import { slugify } from '@nera-static/plugin-utils'
+
+slugify('Web Development')   // 'web-development'
+slugify('Über uns')          // 'uber-uns'
+slugify('Straße')            // 'strasse'
+slugify('Café')              // 'cafe'
+slugify('About Us!')         // 'about-us'
+slugify('日本語')             // ''
+```
+
+**Use this rather than writing your own.** The obvious one-liner is ASCII-only and produces broken output:
+
+```js
+text.toLowerCase().replace(/[^\w]+/g, '-')   // ❌ don't
+```
+
+`\w` is `[A-Za-z0-9_]`, so `Über uns` becomes `-ber-uns` and `Straße` becomes `stra-e`. A leading hyphen is legal in an HTML `id` but is **not a valid CSS identifier** — `#-ber-uns` matches nothing in a stylesheet and `document.querySelector('#-ber-uns')` throws. That defect shipped in `plugin-one-page` until v3.0.0.
+
+The rule: `ß` → `ss` (it has no NFKD decomposition, so it would otherwise become a hyphen mid-word), then NFKD with combining marks dropped, then lowercase, then every run of non-alphanumerics collapsed to a single `-`, then leading and trailing hyphens trimmed. It is idempotent.
+
+A string with no Latin letters or digits returns `''`. **Decide what that means at the call site** — omitting the element is usually better than emitting `id=""`:
+
+```js
+const id = slugify(heading)
+return id ? `<a id="${id}"></a>` : ''
+```
+
 ### Template Publishing
 
 #### `validateNeraProject(expectedPackageName?: string): boolean`
