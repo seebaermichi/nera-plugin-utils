@@ -26,12 +26,12 @@
         "access": "public"
     },
     "dependencies": {
-        "js-yaml": "^4.1.0"
+        "js-yaml": "^5.2.1"
     },
     "devDependencies": {
-        "eslint": "^9.17.0",
+        "eslint": "^10.7.0",
         "husky": "^9.1.7",
-        "vitest": "^3.2.4"
+        "vitest": "^4.1.10"
     },
     "scripts": {
         "test": "vitest",
