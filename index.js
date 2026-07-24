@@ -84,6 +84,63 @@ export function validateNeraProject(expectedPackageName = 'dummy') {
 }
 
 /**
+ * Resolves the project's presentation directory for `views` or `assets`, the
+ * same way the generator does (core.js), so a plugin publishes where the build
+ * will actually look:
+ *
+ *   1. An explicit `folders.<key>` in config/app.yaml always wins.
+ *   2. Otherwise, if a local `theme/` folder exists, it is `theme/<key>` — the
+ *      generator renders themed sites from `theme/views` and serves from
+ *      `theme/assets`, and a plugin's files are the site's own override layer,
+ *      so they belong there.
+ *   3. Otherwise the deprecated root `<key>/`, byte-identical to before the
+ *      theme system existed.
+ *
+ * @param {string} cwd - Project root
+ * @param {'views'|'assets'} key - Which presentation folder to resolve
+ * @returns {string} - Absolute path to the resolved directory
+ */
+function resolvePresentationDir(cwd, key) {
+    const appConfig = getConfig(path.resolve(cwd, 'config/app.yaml'))
+    const explicit = appConfig?.folders?.[key]
+
+    if (typeof explicit === 'string' && explicit.trim()) {
+        return path.resolve(cwd, explicit)
+    }
+
+    if (fs.existsSync(path.resolve(cwd, 'theme'))) {
+        return path.resolve(cwd, 'theme', key)
+    }
+
+    return path.resolve(cwd, key)
+}
+
+/**
+ * The project's views directory — `theme/views` on a themed site, the
+ * deprecated root `views` otherwise (or whatever `folders.views` in
+ * config/app.yaml points to). Published templates land under its `vendor/`.
+ *
+ * @param {string} [cwd] - Project root (defaults to process.cwd())
+ * @returns {string} - Absolute path to the views directory
+ */
+export function resolveViewsDir(cwd = process.cwd()) {
+    return resolvePresentationDir(cwd, 'views')
+}
+
+/**
+ * The project's assets directory — `theme/assets` on a themed site, the
+ * deprecated root `assets` otherwise (or whatever `folders.assets` in
+ * config/app.yaml points to). Published support files (e.g. a client script)
+ * land under it.
+ *
+ * @param {string} [cwd] - Project root (defaults to process.cwd())
+ * @returns {string} - Absolute path to the assets directory
+ */
+export function resolveAssetsDir(cwd = process.cwd()) {
+    return resolvePresentationDir(cwd, 'assets')
+}
+
+/**
  * Publishes template files from a plugin to a Nera project
  * @param {Object} options - Configuration options
  * @param {string} options.pluginName - Name of the plugin (e.g., 'plugin-popular-content')
@@ -108,10 +165,11 @@ export function publishTemplates({
         return false
     }
 
-    const destinationDir = path.resolve(
-        process.cwd(),
-        `views/vendor/${pluginName}/`
-    )
+    // Resolve the views dir the same way the build does: `theme/views/vendor`
+    // on a themed site, root `views/vendor` otherwise. Publishing to root on a
+    // themed site put files where the layered resolver never looks, so the
+    // includes silently found nothing.
+    const destinationDir = path.join(resolveViewsDir(), 'vendor', pluginName)
 
     // Check if destination already exists. Overwriting by default would
     // discard the customizations that publishing exists to enable, so the
@@ -226,6 +284,65 @@ export function publishAllTemplates({
         })
     } catch (error) {
         console.error(`❌ Error reading source directory: ${error.message}`)
+        return false
+    }
+}
+
+/**
+ * Publishes a single support file — a plugin's client script, say — into the
+ * project's assets folder, theme-aware and with the same skip-if-exists rule as
+ * publishTemplates. Plugins that ship a runtime asset alongside their templates
+ * (e.g. plugin-search, plugin-contact-form) should copy it through here so it
+ * lands next to the templates (`theme/assets` on a themed site) instead of a
+ * hand-rolled root `assets/` copy that a themed build never serves.
+ *
+ * @param {Object} options - Configuration options
+ * @param {string} options.sourceFile - Absolute path to the file to copy
+ * @param {string} options.targetPath - Destination relative to the assets root,
+ *     e.g. `js/contact-form.js`
+ * @param {string} [options.expectedPackageName] - Override for testing purposes
+ * @param {boolean} [options.force] - Overwrite an existing file, discarding edits
+ * @returns {boolean} - True on success, including a deliberate skip
+ */
+export function publishAsset({
+    sourceFile,
+    targetPath,
+    expectedPackageName,
+    force = false
+}) {
+    if (!validateNeraProject(expectedPackageName)) {
+        console.error(
+            '❌ Please run this command from the root of your Nera project (where the plugin is installed).'
+        )
+        return false
+    }
+
+    if (!fs.existsSync(sourceFile)) {
+        console.error(`❌ Source asset not found: ${sourceFile}`)
+        return false
+    }
+
+    const destPath = path.join(resolveAssetsDir(), targetPath)
+    // Shown relative to the project root so the message reads the same whether
+    // the file went to `theme/assets/…` or the deprecated root `assets/…`.
+    const shownPath = path.relative(process.cwd(), destPath)
+
+    // Same rule as publishTemplates: never clobber a user's edited copy.
+    if (fs.existsSync(destPath) && !force) {
+        console.log(
+            `⚠️  ${shownPath} already exists — skipping.\n` +
+                '    Re-run with --force to overwrite (this will discard your edits).'
+        )
+        return true
+    }
+
+    try {
+        fs.mkdirSync(path.dirname(destPath), { recursive: true })
+        fs.copyFileSync(sourceFile, destPath)
+        console.log(`✅ Copied ${path.basename(sourceFile)} to ${shownPath}`)
+        return true
+    } catch (error) {
+        console.error(`❌ Failed to copy asset: ${error.message}`)
         return false
     }
 }

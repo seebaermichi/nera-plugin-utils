@@ -89,7 +89,7 @@ if (validateNeraProject()) {
 
 Publishes specific template files from a plugin to a Nera project.
 
-If `views/vendor/<pluginName>/` already exists, publishing is **skipped** and the function returns `true` — this protects the customizations you have made to previously published templates. Pass `force: true` to overwrite them.
+The destination is **theme-aware**, resolved exactly as the generator resolves its views folder (see `resolveViewsDir` below): `theme/views/vendor/<pluginName>/` on a themed site, the deprecated root `views/vendor/<pluginName>/` otherwise. If it already exists, publishing is **skipped** and the function returns `true` — this protects the customizations you have made to previously published templates. Pass `force: true` to overwrite them.
 
 ```js
 import { publishTemplates } from '@nera-static/plugin-utils'
@@ -121,6 +121,27 @@ const result = publishAllTemplates({
 ```
 
 Returns `true` and logs a warning if `sourceDir` contains no `.pug` files; an unreadable `sourceDir` returns `false`. A publish script following the `process.exit(result ? 0 : 1)` pattern below therefore exits `0` having copied nothing — check your `sourceDir` if a plugin's templates never appear.
+
+#### `publishAsset(options): boolean`
+
+Publishes a **single support file** — a plugin's client script, say — into the project's assets folder, theme-aware (`theme/assets/` on a themed site, deprecated root `assets/` otherwise) and with the same skip-if-exists rule as `publishTemplates`. Use it for plugins that ship a runtime asset alongside their templates, so the asset lands where a themed build actually serves it rather than a root `assets/` copy the build ignores.
+
+```js
+import { publishAsset } from '@nera-static/plugin-utils'
+
+const result = publishAsset({
+    sourceFile: path.resolve(__dirname, '../views/my-plugin.js'),
+    targetPath: 'js/my-plugin.js', // relative to the resolved assets root
+    expectedPackageName: 'dummy', // optional, for testing
+    force: false, // optional, overwrite an existing file
+})
+```
+
+Returns `false` outside a Nera project or when `sourceFile` is missing; a deliberate skip of an existing file returns `true`.
+
+#### `resolveViewsDir(cwd?): string` / `resolveAssetsDir(cwd?): string`
+
+Return the project's `views` / `assets` directory as an absolute path, resolved the same way the generator does: an explicit `folders.<key>` in `config/app.yaml` wins; otherwise `theme/views` / `theme/assets` when a local `theme/` folder exists; otherwise the deprecated root folder. `publishTemplates` and `publishAsset` use these internally, but they are exported for plugins that need to report or reason about where their files went.
 
 > The `__dirname` used in these option examples is not defined in ESM. See the CLI Integration example below for the two lines that define it.
 

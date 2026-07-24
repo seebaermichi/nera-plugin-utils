@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.5.0] - 2026-07-24
+
+### Added
+
+-   **`resolveViewsDir(cwd?)`** and **`resolveAssetsDir(cwd?)`** — return the
+    project's presentation directories the same way the generator does
+    (`core.js`): an explicit `folders.<key>` in `config/app.yaml` wins;
+    otherwise `theme/views` / `theme/assets` when a local `theme/` folder
+    exists; otherwise the deprecated root `views/` / `assets/`
+
+-   **`publishAsset({ sourceFile, targetPath, force?, expectedPackageName? })`**
+    — publishes a single support file (e.g. a plugin's client script) into the
+    resolved assets folder, theme-aware, with the same skip-if-exists rule as
+    `publishTemplates`. Plugins that ship a runtime asset alongside their
+    templates (`plugin-search`, `plugin-contact-form`) should copy it through
+    here instead of a hand-rolled root `assets/` copy
+
+### Changed
+
+-   **`publishTemplates` / `publishAllTemplates` now publish theme-aware.** The
+    destination is `resolveViewsDir()/vendor/<plugin>` rather than a hardcoded
+    root `views/vendor/<plugin>`. On a themed site (a local `theme/` folder, so
+    the build renders from `theme/views`) templates now land in
+    `theme/views/vendor/…`, where the generator's layered resolver actually
+    looks — publishing to root `views/vendor/` left the includes silently
+    resolving to nothing. Sites with no `theme/` folder are unchanged, so this
+    is additive rather than breaking
+
+
 ## [1.4.0] - 2026-07-22
 
 ### Added

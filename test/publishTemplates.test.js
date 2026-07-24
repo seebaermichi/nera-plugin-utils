@@ -11,7 +11,10 @@ import { join, resolve } from 'path'
 import {
     validateNeraProject,
     publishTemplates,
-    publishAllTemplates
+    publishAllTemplates,
+    publishAsset,
+    resolveViewsDir,
+    resolveAssetsDir
 } from '../index.js'
 
 const tempDir = resolve('./temp-test')
@@ -226,6 +229,166 @@ describe('publishTemplates', () => {
         // A partial copy would trip the skip-if-exists check on the retry,
         // permanently wedging the publish.
         expect(existsSync('./views/vendor/plugin-test')).toBe(false)
+    })
+
+    it('publishes into theme/views/vendor when a theme folder exists', () => {
+        // A themed site renders from theme/views; publishing to root views/
+        // put templates where the layered resolver never looks.
+        mkdirSync('./theme', { recursive: true })
+
+        const result = publishTemplates({
+            pluginName: 'plugin-test',
+            sourceDir: sourceDir,
+            templateFiles: 'template.pug',
+            expectedPackageName: 'dummy'
+        })
+
+        expect(result).toBe(true)
+        expect(
+            existsSync('./theme/views/vendor/plugin-test/template.pug')
+        ).toBe(true)
+        expect(existsSync('./views/vendor/plugin-test/template.pug')).toBe(
+            false
+        )
+    })
+
+    it('honors an explicit folders.views over the theme probe', () => {
+        mkdirSync('./theme', { recursive: true })
+        mkdirSync('./config', { recursive: true })
+        writeFileSync('./config/app.yaml', 'folders:\n  views: ./custom-views\n')
+
+        const result = publishTemplates({
+            pluginName: 'plugin-test',
+            sourceDir: sourceDir,
+            templateFiles: 'template.pug',
+            expectedPackageName: 'dummy'
+        })
+
+        expect(result).toBe(true)
+        expect(
+            existsSync('./custom-views/vendor/plugin-test/template.pug')
+        ).toBe(true)
+        expect(
+            existsSync('./theme/views/vendor/plugin-test/template.pug')
+        ).toBe(false)
+    })
+})
+
+describe('resolveViewsDir / resolveAssetsDir', () => {
+    let originalCwd
+
+    beforeEach(() => {
+        originalCwd = process.cwd()
+        mkdirSync(testProjectDir, { recursive: true })
+        process.chdir(testProjectDir)
+        writeFileSync('./package.json', JSON.stringify({ name: 'dummy' }))
+    })
+
+    afterEach(() => {
+        process.chdir(originalCwd)
+        if (existsSync(tempDir)) {
+            rmSync(tempDir, { recursive: true })
+        }
+    })
+
+    it('defaults to the deprecated root folders with no theme', () => {
+        expect(resolveViewsDir()).toBe(resolve(testProjectDir, 'views'))
+        expect(resolveAssetsDir()).toBe(resolve(testProjectDir, 'assets'))
+    })
+
+    it('resolves to theme/ folders when a theme folder exists', () => {
+        mkdirSync('./theme', { recursive: true })
+
+        expect(resolveViewsDir()).toBe(resolve(testProjectDir, 'theme/views'))
+        expect(resolveAssetsDir()).toBe(resolve(testProjectDir, 'theme/assets'))
+    })
+
+    it('honors explicit folders in config/app.yaml', () => {
+        mkdirSync('./config', { recursive: true })
+        writeFileSync(
+            './config/app.yaml',
+            'folders:\n  views: ./v\n  assets: ./a\n'
+        )
+
+        expect(resolveViewsDir()).toBe(resolve(testProjectDir, 'v'))
+        expect(resolveAssetsDir()).toBe(resolve(testProjectDir, 'a'))
+    })
+})
+
+describe('publishAsset', () => {
+    let originalCwd
+
+    beforeEach(() => {
+        originalCwd = process.cwd()
+        mkdirSync(testProjectDir, { recursive: true })
+        mkdirSync(sourceDir, { recursive: true })
+        process.chdir(testProjectDir)
+        writeFileSync('./package.json', JSON.stringify({ name: 'dummy' }))
+        writeFileSync(join(sourceDir, 'client.js'), 'console.log("hi")')
+    })
+
+    afterEach(() => {
+        process.chdir(originalCwd)
+        if (existsSync(tempDir)) {
+            rmSync(tempDir, { recursive: true })
+        }
+    })
+
+    const publish = (extra = {}) =>
+        publishAsset({
+            sourceFile: join(sourceDir, 'client.js'),
+            targetPath: 'js/client.js',
+            expectedPackageName: 'dummy',
+            ...extra
+        })
+
+    it('copies into root assets with no theme', () => {
+        expect(publish()).toBe(true)
+        expect(readFileSync('./assets/js/client.js', 'utf-8')).toBe(
+            'console.log("hi")'
+        )
+    })
+
+    it('copies into theme/assets when a theme folder exists', () => {
+        mkdirSync('./theme', { recursive: true })
+
+        expect(publish()).toBe(true)
+        expect(existsSync('./theme/assets/js/client.js')).toBe(true)
+        expect(existsSync('./assets/js/client.js')).toBe(false)
+    })
+
+    it('skips an existing file and preserves the user copy', () => {
+        mkdirSync('./assets/js', { recursive: true })
+        writeFileSync('./assets/js/client.js', 'mine')
+
+        expect(publish()).toBe(true)
+        expect(readFileSync('./assets/js/client.js', 'utf-8')).toBe('mine')
+    })
+
+    it('overwrites an existing file when force is set', () => {
+        mkdirSync('./assets/js', { recursive: true })
+        writeFileSync('./assets/js/client.js', 'mine')
+
+        expect(publish({ force: true })).toBe(true)
+        expect(readFileSync('./assets/js/client.js', 'utf-8')).toBe(
+            'console.log("hi")'
+        )
+    })
+
+    it('returns false outside a Nera project', () => {
+        unlinkSync('./package.json')
+
+        expect(publish()).toBe(false)
+    })
+
+    it('returns false when the source asset is missing', () => {
+        expect(
+            publishAsset({
+                sourceFile: join(sourceDir, 'nope.js'),
+                targetPath: 'js/nope.js',
+                expectedPackageName: 'dummy'
+            })
+        ).toBe(false)
     })
 })
 
