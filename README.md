@@ -5,6 +5,8 @@
 
 🛠 Utility helpers for developing plugins for the [Nera](https://github.com/seebaermichi/nera) static site generator.
 
+📖 **Documentation:** [nera.js.org](https://nera.js.org)
+
 ---
 
 ## 📦 Installation
