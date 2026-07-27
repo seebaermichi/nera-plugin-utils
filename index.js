@@ -1,11 +1,28 @@
 import fs from 'fs'
 import path from 'path'
-import yaml from 'js-yaml'
+// js-yaml 5 dropped the default export; `load` is a named export now.
+import { load } from 'js-yaml'
+
+// js-yaml 5 throws on a document with no content, where 4 returned undefined.
+// A packaged config whose every key is commented out is the normal case here —
+// that is how plugins ship their defaults — so it has to keep behaving like an
+// absent config instead of crashing the build. Real syntax errors still throw.
+function hasNoDocument(content) {
+    return content
+        .split('\n')
+        .every((line) => {
+            const trimmed = line.trim()
+            return trimmed === '' || trimmed.startsWith('#')
+        })
+}
 
 export function getConfig(filePath) {
     if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8')
-        return yaml.load(content) || {}
+        if (hasNoDocument(content)) {
+            return {}
+        }
+        return load(content) || {}
     }
     return {}
 }
