@@ -19,4 +19,28 @@ describe('getConfig', () => {
         const config = getConfig('./nonexistent.yaml')
         expect(config).toEqual({})
     })
+
+    // Plugins ship their config with every key commented out, so a file with
+    // nothing but comments is the common case, not an edge case. js-yaml 5
+    // throws on a contentless document, so this has to be handled before the
+    // parser sees it.
+    it.each([
+        ['empty', ''],
+        ['a single newline', '\n'],
+        ['only whitespace', '   \n  \n'],
+        ['only comments', '# order_property: pagination_order\n'],
+        ['comments and blank lines', '\n# one\n\n#   two\n\n'],
+    ])('returns empty object when the file is %s', (_label, content) => {
+        writeFileSync(tmpFile, content)
+        expect(getConfig(tmpFile)).toEqual({})
+
+        unlinkSync(tmpFile)
+    })
+
+    it('still throws on genuinely malformed YAML', () => {
+        writeFileSync(tmpFile, 'a: [1,\n')
+        expect(() => getConfig(tmpFile)).toThrow()
+
+        unlinkSync(tmpFile)
+    })
 })
