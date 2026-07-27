@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.6.0] - 2026-07-27
+
+### Changed
+
+-   **js-yaml 4 → 5.** `getConfig` returns the same shapes it always did for
+    every construct a Nera config uses — verified by parsing all 96 YAML files
+    across the ecosystem under both versions and diffing the results. One
+    difference is worth knowing about: a bare date scalar (`published:
+    2026-07-27`) now parses as the string `'2026-07-27'` rather than a `Date`.
+    No packaged plugin config declares a date field, so this only affects you
+    if you put one in your own `config/<plugin>.yaml` and relied on getting a
+    `Date` back
+
+### Fixed
+
+-   **a config file containing only comments no longer throws.** js-yaml 5
+    rejects a document with no content, where 4 returned `undefined`. Plugins
+    ship their config with every key commented out — that is how the defaults
+    are documented — so upgrading would have crashed the build of any site
+    that copied one of those files verbatim. Such a file is now treated as an
+    absent config and yields `{}`, as before. The same applies to an empty or
+    whitespace-only file. Genuinely malformed YAML still throws
+
 ## [1.5.0] - 2026-07-24
 
 ### Added
