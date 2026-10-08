@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.6.1] - 2026-10-08
+
+Documentation only — no code changed.
+
+### Fixed
+
+-   **`README.md` Compatibility still listed `js-yaml ^4.1.0`** as the runtime
+    dependency; 1.6.0 moved to `js-yaml ^5.2.2`.
+-   **The `bin/publish-template.js` example put a comment above the
+    `#!/usr/bin/env node` line.** A hashbang is only valid as the very first
+    line, so a script copied verbatim failed with a `SyntaxError`.
+-   **"Themed site" is now defined where the publish destination is
+    described** — a site with a local `theme/` folder, which is what
+    `nera new` scaffolds — so plugin authors know which destination their
+    users get
+
 ## [1.6.0] - 2026-07-27
 
 ### Changed

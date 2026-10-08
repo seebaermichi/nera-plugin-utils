@@ -91,7 +91,7 @@ if (validateNeraProject()) {
 
 Publishes specific template files from a plugin to a Nera project.
 
-The destination is **theme-aware**, resolved exactly as the generator resolves its views folder (see `resolveViewsDir` below): `theme/views/vendor/<pluginName>/` on a themed site, the deprecated root `views/vendor/<pluginName>/` otherwise. If it already exists, publishing is **skipped** and the function returns `true` — this protects the customizations you have made to previously published templates. Pass `force: true` to overwrite them.
+The destination is **theme-aware**, resolved exactly as the generator resolves its views folder (see `resolveViewsDir` below): `theme/views/vendor/<pluginName>/` on a themed site (one with a local `theme/` folder — what `nera new` scaffolds), the deprecated root `views/vendor/<pluginName>/` otherwise. If it already exists, publishing is **skipped** and the function returns `true` — this protects the customizations you have made to previously published templates. Pass `force: true` to overwrite them.
 
 ```js
 import { publishTemplates } from '@nera-static/plugin-utils'
@@ -209,8 +209,8 @@ A plugin exports `getAppData` and/or `getMetaData`. Both receive a single object
 See the [Nera contributing guide](https://github.com/seebaermichi/nera/blob/main/CONTRIBUTING.md) for the full plugin contract.
 
 ```js
-// bin/publish-template.js - Template publishing script
 #!/usr/bin/env node
+// bin/publish-template.js - Template publishing script
 
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -262,7 +262,7 @@ Created and maintained by [@seebaermichi](https://github.com/seebaermichi)
 ## 🧩 Compatibility
 
 - **Node.js**: >= 20.0.0
-- **Runtime dependency**: `js-yaml ^4.1.0` only
+- **Runtime dependency**: `js-yaml ^5.2.2` only
 - **Nera**: no direct dependency on the generator — this package is used by
   plugins, not by the generator itself
 
