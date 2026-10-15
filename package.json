@@ -6,7 +6,7 @@
     "type": "module",
     "repository": {
         "type": "git",
-        "url": "https://github.com/seebaermichi/nera-plugin-utils.git"
+        "url": "git+https://github.com/seebaermichi/nera-plugin-utils.git"
     },
     "bugs": {
         "url": "https://github.com/seebaermichi/nera-plugin-utils/issues"
