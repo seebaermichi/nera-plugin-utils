@@ -53,7 +53,8 @@
         "./sort": "./src/sort.js",
         "./urls": "./src/urls.js",
         "./frontmatter": "./src/frontmatter.js",
-        "./glob": "./src/glob.js"
+        "./glob": "./src/glob.js",
+        "./pages": "./src/pages.js"
     },
     "files": [
         "index.js",
