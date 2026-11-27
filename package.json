@@ -45,7 +45,9 @@
         "./log": "./src/log.js",
         "./config": "./src/config.js",
         "./packages": "./src/packages.js",
-        "./guard": "./src/guard.js"
+        "./guard": "./src/guard.js",
+        "./html": "./src/html.js",
+        "./lang": "./src/lang.js"
     },
     "files": [
         "index.js",
