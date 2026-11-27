@@ -47,7 +47,9 @@
         "./packages": "./src/packages.js",
         "./guard": "./src/guard.js",
         "./html": "./src/html.js",
-        "./lang": "./src/lang.js"
+        "./lang": "./src/lang.js",
+        "./dates": "./src/dates.js",
+        "./sort": "./src/sort.js"
     },
     "files": [
         "index.js",
