@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-11-27
+
+The helpers that Nera plugins, core and the tools copy from each other now
+live here, one subpath export per family. Nothing in `.` changed, and no
+dependency was added (still `js-yaml` only). Each subpath is documented in
+the README under "Shared helpers".
+
+### Added
+
+-   **`@nera-static/plugin-utils/values`**: `isPlainObject(value)` (prototype
+    `Object.prototype` or `null`; arrays, `Date`, `Map` and class instances
+    are not plain), `isText(value)` (a string with a non-whitespace
+    character) and `textOr(value, fallback)` (the trimmed string, else
+    `fallback`)
+-   **`@nera-static/plugin-utils/log`**: `createLogger(name, { sink })` with
+    `warn`, `info` and the page-scoped `page(page, what, todo)`, printing
+    `⚠️ <name>: …` (`ℹ️ ` for `info`)
+-   **`@nera-static/plugin-utils/config`**: `getConfig` (the same function as
+    in `.`), `loadPluginConfig(name, { cwd, app })`, which honours
+    `app.folders.config`, and `createConfigReader({ file, defaults, readers,
+    warn })` with the fleet's one message set and a date-aware `show()`.
+    Unknown keys are found with `Object.hasOwn`, so a YAML key
+    `constructor:` or `toString:` now warns as unknown instead of slipping
+    into the config, as it did in every plugin's own reader
+-   **`@nera-static/plugin-utils/packages`**: `requireFromSite(cwd)`, a
+    `require` that resolves from the site root, and
+    `ownVersion(import.meta.url)`, the calling package's version
+-   **`@nera-static/plugin-utils/guard`**: `assertCoreVersion({ plugin, need,
+    why, cwd, from, version })`, `coreVersion({ cwd, from })`,
+    `satisfiesFloor(version, floor)` (a prerelease sorts below its release)
+    and `GET_ASSETS_CORE` (`'4.13.0'`), the core version guard five plugins
+    carried as identical copies
+
+### Changed
+
+-   **every built-in module is imported with the `node:` prefix**, enforced by
+    a lint rule; the README examples follow it
+
+### Fixed
+
+-   **`resolveViewsDir` and `resolveAssetsDir` (and so `publishTemplates`,
+    `publishAllTemplates` and `publishAsset`) now follow core's `themeOnly`
+    rule.** On a site whose `config/app.yaml` sets `theme:` and which has
+    neither a `theme/` nor a root `views/` folder, they resolved to the
+    deprecated root `views/` / `assets/`; core uses `theme/views` /
+    `theme/assets` there. `npm run publish-template` therefore wrote
+    `views/vendor/…`, and the new root `views/` switched the build into the
+    deprecated layout. Both now return the `theme/` folder, as core does
+
 
 ## [1.6.1] - 2026-10-08
 
