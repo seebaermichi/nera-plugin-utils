@@ -43,7 +43,9 @@
         ".": "./index.js",
         "./values": "./src/values.js",
         "./log": "./src/log.js",
-        "./config": "./src/config.js"
+        "./config": "./src/config.js",
+        "./packages": "./src/packages.js",
+        "./guard": "./src/guard.js"
     },
     "files": [
         "index.js",
