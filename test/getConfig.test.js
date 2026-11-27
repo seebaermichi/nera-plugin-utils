@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { writeFileSync, unlinkSync } from 'fs'
+import { writeFileSync, unlinkSync } from 'node:fs'
 import { getConfig } from '../index.js'
 
 const tmpFile = './.tmp-config.yaml'

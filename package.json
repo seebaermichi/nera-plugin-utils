@@ -40,10 +40,12 @@
         "prepare": "husky"
     },
     "exports": {
-        ".": "./index.js"
+        ".": "./index.js",
+        "./values": "./src/values.js"
     },
     "files": [
-        "index.js"
+        "index.js",
+        "src"
     ],
     "engines": {
         "node": ">=20.0.0"

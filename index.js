@@ -1,5 +1,5 @@
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 // js-yaml 5 dropped the default export; `load` is a named export now.
 import { load } from 'js-yaml'
 

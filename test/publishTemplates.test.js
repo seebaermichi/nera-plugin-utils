@@ -6,8 +6,8 @@ import {
     mkdirSync,
     rmSync,
     existsSync
-} from 'fs'
-import { join, resolve } from 'path'
+} from 'node:fs'
+import { join, resolve } from 'node:path'
 import {
     validateNeraProject,
     publishTemplates,
