@@ -33,10 +33,13 @@ the README under "Shared helpers".
     `require` that resolves from the site root, and
     `ownVersion(import.meta.url)`, the calling package's version
 -   **`@nera-static/plugin-utils/guard`**: `assertCoreVersion({ plugin, need,
-    why, cwd, from, version })`, `coreVersion({ cwd, from })`,
+    why, cwd, from, version, hint })`, `coreVersion({ cwd, from })`,
     `satisfiesFloor(version, floor)` (a prerelease sorts below its release)
     and `GET_ASSETS_CORE` (`'4.13.0'`), the core version guard five plugins
-    carried as identical copies
+    carried as identical copies. The optional `hint` is appended after the
+    update advice, for a plugin-specific way out such as code-blocks'
+    "Or set `assets: false` in config/code-blocks.yaml."
+-   **`CHANGELOG.md` is part of the published package**
 
 ### Changed
 
@@ -53,6 +56,10 @@ the README under "Shared helpers".
     `theme/assets` there. `npm run publish-template` therefore wrote
     `views/vendor/…`, and the new root `views/` switched the build into the
     deprecated layout. Both now return the `theme/` folder, as core does
+-   **an explicit blank `folders.views: ''` or `folders.assets: ''` in
+    `config/app.yaml` is kept, as core keeps it**: it is the site root. The
+    helpers ignored a blank value and fell back to `theme/<key>` or the root
+    `<key>/`, so `publishTemplates` wrote where the build does not look
 
 
 ## [1.6.1] - 2026-10-08

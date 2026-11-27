@@ -168,6 +168,35 @@ describe('coreVersion and assertCoreVersion against a site', () => {
             )
         })
 
+        it('appends a hint after the update advice, trimmed', () => {
+            expect(() =>
+                assertCoreVersion({
+                    plugin: 'plugin-code-blocks',
+                    version: '4.12.0',
+                    hint: '  Or set `assets: false` in config/code-blocks.yaml.\n',
+                })
+            ).toThrow(
+                new Error(
+                    'plugin-code-blocks: @nera-static/core 4.12.0 is too old; it needs >= 4.13.0 (the getAssets hook). ' +
+                        'Update with `npm update @nera-static/nera` (or `@nera-static/core`). ' +
+                        'Or set `assets: false` in config/code-blocks.yaml.'
+                )
+            )
+        })
+
+        it('adds nothing for a blank or non-string hint', () => {
+            const bare =
+                'plugin-x: @nera-static/core 4.12.0 is too old; it needs >= 4.13.0 (the getAssets hook). ' +
+                'Update with `npm update @nera-static/nera` (or `@nera-static/core`).'
+            for (const hint of [undefined, '', '   ', 42, null]) {
+                expect(() => assertCoreVersion({ plugin: 'plugin-x', version: '4.12.0', hint })).toThrow(new Error(bare))
+            }
+        })
+
+        it('passes a new enough core whatever the hint', () => {
+            expect(() => assertCoreVersion({ plugin: 'plugin-x', version: '4.13.0', hint: 'never shown' })).not.toThrow()
+        })
+
         it('checks the floor it is given', () => {
             expect(() => assertCoreVersion({ plugin: 'plugin-x', need: '4.15.0', version: '4.14.0', why: 'y' }))
                 .toThrow(/needs >= 4\.15\.0 \(y\)/)

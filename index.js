@@ -84,7 +84,10 @@ export function validateNeraProject(expectedPackageName = 'dummy') {
  * same way the generator does (core.js), so a plugin publishes where the build
  * will actually look:
  *
- *   1. An explicit `folders.<key>` in config/app.yaml always wins.
+ *   1. An explicit `folders.<key>` string in config/app.yaml always wins,
+ *      resolved against the project root as core does — a blank one too
+ *      (`views: ''` is the root itself). A non-string value (`views:` with
+ *      nothing after it) is no folder and falls through.
  *   2. Otherwise, if a local `theme/` folder exists, it is `theme/<key>` — the
  *      generator renders themed sites from `theme/views` and serves from
  *      `theme/assets`, and a plugin's files are the site's own override layer,
@@ -104,7 +107,7 @@ function resolvePresentationDir(cwd, key) {
     const appConfig = getConfig(path.resolve(cwd, 'config/app.yaml'))
     const explicit = appConfig?.folders?.[key]
 
-    if (typeof explicit === 'string' && explicit.trim()) {
+    if (typeof explicit === 'string') {
         return path.resolve(cwd, explicit)
     }
 

@@ -9,6 +9,7 @@
 
 import { createRequire } from 'node:module'
 import { requireFromSite } from './packages.js'
+import { textOr } from './values.js'
 
 /** The floor `assertCoreVersion` checks when none is given: the `getAssets` hook. */
 export const GET_ASSETS_CORE = '4.13.0'
@@ -81,7 +82,9 @@ export function coreVersion({ cwd = process.cwd(), from } = {}) {
  * @param {string} [options.cwd] the site root, for `coreVersion`
  * @param {string|URL} [options.from] the plugin's `import.meta.url`, for `coreVersion`
  * @param {string|null} [options.version] core's version (default `coreVersion({ cwd, from })`)
- * @throws {Error} `<plugin>: @nera-static/core <version> is too old; it needs >= <need> (<why>). Update with …`
+ * @param {string} [options.hint] a plugin-specific way out, appended after the update advice
+ *   (e.g. "Or set assets: false in config/code-blocks.yaml."); a blank hint adds nothing
+ * @throws {Error} `<plugin>: @nera-static/core <version> is too old; it needs >= <need> (<why>). Update with … [<hint>]`
  */
 export function assertCoreVersion({
     plugin,
@@ -90,10 +93,13 @@ export function assertCoreVersion({
     cwd,
     from,
     version = coreVersion({ cwd, from }),
+    hint,
 }) {
     if (version === null || satisfiesFloor(version, need)) return
+    const extra = textOr(hint, '')
     throw new Error(
         `${plugin}: @nera-static/core ${version} is too old; it needs >= ${need} (${why}). ` +
-            'Update with `npm update @nera-static/nera` (or `@nera-static/core`).'
+            'Update with `npm update @nera-static/nera` (or `@nera-static/core`).' +
+            (extra && ` ${extra}`)
     )
 }

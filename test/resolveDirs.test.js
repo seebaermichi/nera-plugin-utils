@@ -75,6 +75,28 @@ describe('resolveViewsDir / resolveAssetsDir follow core\'s computeFolders', () 
 
         expect(resolved()).toEqual({ views: 'views', assets: 'theme/assets' })
     })
+
+    it('keeps an explicit blank folders.<key>: \'\' as core does: the site root, even beside theme/', () => {
+        appYaml('folders:\n  views: \'\'\n')
+        expect(resolved()).toEqual({ views: '', assets: 'assets' })
+
+        dir('theme')
+        appYaml('theme: \'@nera-static/theme-blog\'\nfolders:\n  assets: \'\'\n')
+        expect(resolved()).toEqual({ views: 'theme/views', assets: '' })
+    })
+
+    it('keeps a whitespace-only folders.<key> verbatim, as core\'s path.resolve does', () => {
+        appYaml('folders:\n  views: \'  \'\n')
+
+        expect(resolveViewsDir(root)).toBe(path.resolve(root, '  '))
+    })
+
+    it('falls through for a non-string folders.<key> (views: with no value)', () => {
+        dir('theme')
+        appYaml('folders:\n  views:\n  assets: 3\n')
+
+        expect(resolved()).toEqual({ views: 'theme/views', assets: 'theme/assets' })
+    })
 })
 
 describe('publishTemplates on a themeOnly site', () => {

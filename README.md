@@ -143,7 +143,7 @@ Returns `false` outside a Nera project or when `sourceFile` is missing; a delibe
 
 #### `resolveViewsDir(cwd?): string` / `resolveAssetsDir(cwd?): string`
 
-Return the project's `views` / `assets` directory as an absolute path, resolved the same way the generator does: an explicit `folders.<key>` in `config/app.yaml` wins; otherwise `theme/views` / `theme/assets` when a local `theme/` folder exists, or when `app.yaml` sets `theme:` and the site has no root `views/` folder (a thin themed site with no presentation of its own); otherwise the deprecated root folder. `publishTemplates` and `publishAsset` use these internally, but they are exported for plugins that need to report or reason about where their files went.
+Return the project's `views` / `assets` directory as an absolute path, resolved the same way the generator does: an explicit `folders.<key>` string in `config/app.yaml` wins, resolved against the project root (a blank `''` is the root itself, as in core); otherwise `theme/views` / `theme/assets` when a local `theme/` folder exists, or when `app.yaml` sets `theme:` and the site has no root `views/` folder (a thin themed site with no presentation of its own); otherwise the deprecated root folder. `publishTemplates` and `publishAsset` use these internally, but they are exported for plugins that need to report or reason about where their files went.
 
 > The `__dirname` used in these option examples is not defined in ESM. See the CLI Integration example below for the two lines that define it.
 
@@ -326,7 +326,7 @@ const version = ownVersion(import.meta.url)   // your package's version, e.g. '1
 
 A plugin that relies on a hook of a newer `@nera-static/core` (`getAssets` since 4.13.0) is silently never called on an older one, and the build still exits 0. Check core's version from `getAppData` and fail loudly instead; `peerDependencies` reports the same at install time, the guard catches an install that ignored it.
 
-#### `assertCoreVersion({ plugin, need = GET_ASSETS_CORE, why = 'the getAssets hook', cwd, from, version })`
+#### `assertCoreVersion({ plugin, need = GET_ASSETS_CORE, why = 'the getAssets hook', cwd, from, version, hint })`
 
 Throws when core is known to be older than `need`:
 
@@ -334,7 +334,7 @@ Throws when core is known to be older than `need`:
 plugin-sitemap: @nera-static/core 4.12.0 is too old; it needs >= 4.13.0 (the getAssets hook). Update with `npm update @nera-static/nera` (or `@nera-static/core`).
 ```
 
-`plugin` is the name as you want it shown. `version` defaults to `coreVersion({ cwd, from })`. An **unknown** version passes: some core is calling the plugin, and refusing on a guess would block a working setup.
+`plugin` is the name as you want it shown. `version` defaults to `coreVersion({ cwd, from })`. `hint`, when it is a non-blank string, is appended (trimmed) after the update advice, for a way out that only your plugin knows — e.g. ``hint: 'Or set `assets: false` in config/code-blocks.yaml.'``. An **unknown** version passes: some core is calling the plugin, and refusing on a guess would block a working setup.
 
 #### `coreVersion({ cwd = process.cwd(), from } = {}): string | null`
 
