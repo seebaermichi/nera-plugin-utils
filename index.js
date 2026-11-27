@@ -89,7 +89,11 @@ export function validateNeraProject(expectedPackageName = 'dummy') {
  *      generator renders themed sites from `theme/views` and serves from
  *      `theme/assets`, and a plugin's files are the site's own override layer,
  *      so they belong there.
- *   3. Otherwise the deprecated root `<key>/`, byte-identical to before the
+ *   3. The same when `theme:` names a theme package and the site has neither
+ *      `theme/` nor a root `views/` (core's `themeOnly`): the theme supplies
+ *      every view, and the first override, a plugin's included, starts
+ *      `theme/`. Core decides this by the root `views/` alone, for both keys.
+ *   4. Otherwise the deprecated root `<key>/`, byte-identical to before the
  *      theme system existed.
  *
  * @param {string} cwd - Project root
@@ -104,7 +108,10 @@ function resolvePresentationDir(cwd, key) {
         return path.resolve(cwd, explicit)
     }
 
-    if (fs.existsSync(path.resolve(cwd, 'theme'))) {
+    const themeOnly =
+        Boolean(appConfig?.theme) && !fs.existsSync(path.resolve(cwd, 'views'))
+
+    if (themeOnly || fs.existsSync(path.resolve(cwd, 'theme'))) {
         return path.resolve(cwd, 'theme', key)
     }
 
