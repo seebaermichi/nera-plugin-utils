@@ -41,7 +41,9 @@
     },
     "exports": {
         ".": "./index.js",
-        "./values": "./src/values.js"
+        "./values": "./src/values.js",
+        "./log": "./src/log.js",
+        "./config": "./src/config.js"
     },
     "files": [
         "index.js",

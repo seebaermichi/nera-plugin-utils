@@ -1,31 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-// js-yaml 5 dropped the default export; `load` is a named export now.
-import { load } from 'js-yaml'
+import { getConfig } from './src/config.js'
 
-// js-yaml 5 throws on a document with no content, where 4 returned undefined.
-// A packaged config whose every key is commented out is the normal case here —
-// that is how plugins ship their defaults — so it has to keep behaving like an
-// absent config instead of crashing the build. Real syntax errors still throw.
-function hasNoDocument(content) {
-    return content
-        .split('\n')
-        .every((line) => {
-            const trimmed = line.trim()
-            return trimmed === '' || trimmed.startsWith('#')
-        })
-}
-
-export function getConfig(filePath) {
-    if (fs.existsSync(filePath)) {
-        const content = fs.readFileSync(filePath, 'utf-8')
-        if (hasNoDocument(content)) {
-            return {}
-        }
-        return load(content) || {}
-    }
-    return {}
-}
+// `getConfig` lives in `src/config.js` with the rest of the config helpers
+// (`@nera-static/plugin-utils/config`); `.` keeps exporting it unchanged.
+export { getConfig }
 
 /**
  * Turns a user-authored string into a URL-safe slug, for anything that becomes
