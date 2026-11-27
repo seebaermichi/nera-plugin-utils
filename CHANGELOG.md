@@ -5,6 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-11-27
+
+The second half of the helpers Nera plugins, core and the tools copy from
+each other: languages, dates, URLs and `base_path`, escaping, frontmatter,
+glob matching, package names and page selection. Each subpath is written
+once from the best sibling variant and documented in the README under
+"Shared helpers". Nothing in `.` or in the 1.7.0 subpaths changed, and no
+runtime dependency was added (still `js-yaml` only).
+
+If you replace a local copy with one of these, check the shapes below: several
+differ from what some siblings return today.
+
+### Added
+
+-   **`@nera-static/plugin-utils/html`**: `escapeHtml` (`& < > " '`, `'` as
+    `&#39;`), `escapeXml` (`'` as `&apos;`, and the characters XML 1.0 forbids
+    even escaped are dropped) and `escapeRegExp`. Every escaper takes any
+    value: `null` and `undefined` give `''`, so `escapeHtml(null)` is `''`, not
+    `'null'`
+-   **`@nera-static/plugin-utils/lang`**: `siteLang(app, fallback = 'en')`,
+    `pageLang(meta, app, fallback = 'en')`, `siteLanguages(app)`,
+    `isLanguageMap(value, languages)` and `localize(value, lang, { fallbacks,
+    any })`. Languages are trimmed and a blank one counts as absent, so
+    `lang: 'de '` is `de`. `localize` returns `null` (not `undefined`) when no
+    entry fits
+-   **`@nera-static/plugin-utils/dates`**: `toDate(value)`, `formatW3C(value)`,
+    `pageDate(meta, 'published' | 'updated', { warn })`, `byDate(get, {
+    descending })` and the frozen key lists `PUBLISHED_KEYS` (`date`,
+    `datePublished`, `published`) and `UPDATED_KEYS` (`updated`, `updatedAt`,
+    `lastmod`, `dateModified`). **`createdAt` is never read**: core fills it
+    from the file's birth time, which CI stamps alike for every file. A time
+    without an offset is read as UTC, an impossible day such as `2026-02-30` is
+    no date, and only `Z` and `±hh:mm` offsets are accepted (`+0200` is not).
+    `pageDate` takes the first valid key and warns once per invalid value;
+    `byDate` puts items without a date last in both directions
+-   **`@nera-static/plugin-utils/sort`**: `byString` and `byHref`, comparing
+    code units instead of `localeCompare`, so the order is the same on every
+    machine
+-   **`@nera-static/plugin-utils/urls`**: `resolveOrigin({ cwd, app })`
+    (`app.origin`, else canonical-links' `app_origin`, trimmed),
+    `encodePath`, `joinUrl` and `siteUrl` (percent-encoded, so a canonical
+    link and a sitemap URL of a page are the same string),
+    `normalizeBasePath`, `withBasePath` and `stripBasePath` (core's exact
+    `base_path` rules), `hasScheme`, `isInside(root, target, { self })` (a
+    child folder named `..foo` is inside), and `srcsetUrls`/`mapSrcset`. The
+    `srcset` helpers follow the HTML candidate rule, where a URL ends at
+    whitespace: `/a.jpg?w=1,2` and data URIs stay whole, unlike splitting on
+    commas
+-   **`@nera-static/plugin-utils/frontmatter`**: `FRONTMATTER_OPTIONS`, core's
+    frozen `yaml` options (`timestamp`, `<<` merge, last duplicate key wins),
+    and `splitFrontmatter(raw)` → `{ yamlText, body }` by core's fence rule
+    (`----` and `--- ` are no fences, an unclosed block is YAML to the end).
+    It returns `null` when the file has no frontmatter
+-   **`@nera-static/plugin-utils/glob`**: `matchesPattern` and `matchesAny`
+    (the `*` glob of the sitemap and feed `exclude` lists), and, mirroring
+    core's `.neraignore` handling, `IGNORE_FILE`, `readIgnoreList(cwd)` and
+    `isIgnoredAsset(list, file, root)` (`true` means skipped)
+-   **`@nera-static/plugin-utils/packages`** gains the package-name rules:
+    `isPluginPackage(name)` (core's plugin discovery), `pluginShortName(name)`,
+    `pluginPackage(spec)`, which returns `{ name, pkg }` and throws a
+    `TypeError` for an invalid spec, and `themePackage(spec)` (core's rule,
+    `null` for a local or blank spec)
+-   **`@nera-static/plugin-utils/pages`**: `isRenderedPage(meta)` (non-blank
+    `layout` and `href`) and `isNoindex(meta, app)` (`noindex` in the page's
+    `robots`, else the site's)
+
 ## [1.7.0] - 2026-11-27
 
 The helpers that Nera plugins, core and the tools copy from each other now

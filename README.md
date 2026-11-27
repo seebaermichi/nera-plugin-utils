@@ -175,15 +175,23 @@ process.exit(result ? 0 : 1)
 
 ## 🧩 Shared helpers (subpath exports)
 
-Since 1.7.0 the helpers that Nera plugins, core and the tools used to copy from each other live here, one subpath per family. Import them from the subpath, never write a local copy. The `.` export above is unchanged. None of them prints unless that is its job (the logger), reads globals beyond a `cwd` default of `process.cwd()`, or calls `process.exit`.
+Since 1.7.0 the helpers that Nera plugins, core and the tools used to copy from each other live here, one subpath per family (1.8.0 added `/html` to `/pages`). Import them from the subpath, never write a local copy. The `.` export above is unchanged. None of them prints unless that is its job (the logger, `pageDate`'s warning), reads globals beyond a `cwd` default of `process.cwd()`, or calls `process.exit`.
 
 | Subpath | Exports |
 |---|---|
 | `@nera-static/plugin-utils/values` | `isPlainObject`, `isText`, `textOr` |
 | `@nera-static/plugin-utils/log` | `createLogger` |
 | `@nera-static/plugin-utils/config` | `getConfig`, `loadPluginConfig`, `createConfigReader` |
-| `@nera-static/plugin-utils/packages` | `requireFromSite`, `ownVersion` |
+| `@nera-static/plugin-utils/packages` | `requireFromSite`, `ownVersion`, `isPluginPackage`, `pluginShortName`, `pluginPackage`, `themePackage` |
 | `@nera-static/plugin-utils/guard` | `satisfiesFloor`, `coreVersion`, `assertCoreVersion`, `GET_ASSETS_CORE` |
+| `@nera-static/plugin-utils/html` | `escapeHtml`, `escapeXml`, `escapeRegExp` |
+| `@nera-static/plugin-utils/lang` | `siteLang`, `pageLang`, `siteLanguages`, `isLanguageMap`, `localize` |
+| `@nera-static/plugin-utils/dates` | `toDate`, `formatW3C`, `PUBLISHED_KEYS`, `UPDATED_KEYS`, `pageDate`, `byDate` |
+| `@nera-static/plugin-utils/sort` | `byString`, `byHref` |
+| `@nera-static/plugin-utils/urls` | `resolveOrigin`, `encodePath`, `joinUrl`, `siteUrl`, `normalizeBasePath`, `withBasePath`, `stripBasePath`, `hasScheme`, `isInside`, `srcsetUrls`, `mapSrcset` |
+| `@nera-static/plugin-utils/frontmatter` | `FRONTMATTER_OPTIONS`, `splitFrontmatter` |
+| `@nera-static/plugin-utils/glob` | `matchesPattern`, `matchesAny`, `IGNORE_FILE`, `readIgnoreList`, `isIgnoredAsset` |
+| `@nera-static/plugin-utils/pages` | `isRenderedPage`, `isNoindex` |
 
 ### `/values` — checks for parsed YAML and frontmatter
 
@@ -322,6 +330,40 @@ const themeDir = siteRequire.resolve('@nera-static/theme-blog/package.json')
 const version = ownVersion(import.meta.url)   // your package's version, e.g. '1.2.0'
 ```
 
+#### `isPluginPackage(name: unknown): boolean`
+
+Whether core loads the dependency `name` as a plugin: an `@nera-static/plugin-*` package other than the library `@nera-static/plugin-utils`, core's own rule. The scope's other members (`core`, `nera`, `validate`, `theme-*`, `starter-*`) are no plugins; a non-string is `false`.
+
+#### `pluginShortName(name: string): string`
+
+The name core shows a plugin package under, in its log and in `config/plugin-order.yaml`: the package name without `@nera-static/`. Any other name is returned unchanged.
+
+#### `pluginPackage(spec: unknown): { name: string, pkg: string }`
+
+The official plugin a spec names, in the forms `nera plugin add` takes: `<name>`, `plugin-<name>` or `@nera-static/plugin-<name>`. `name` is the bare name (`'sitemap'`), `pkg` the package. Throws a `TypeError` for anything else (another scope, a version or tag such as `sitemap@1`, a path, an uppercase name, `utils`), with a message that names the accepted forms and the catalog at https://nera.js.org/plugins/.
+
+#### `themePackage(spec: unknown): string | null`
+
+The npm package a `theme:` spec (`app.theme`) names, by core's rule: a scoped name or one with a `/` is used verbatim (a third-party theme), a bare name becomes `@nera-static/theme-<name>`. `null` for a local theme (a spec starting with `.`) and for a missing or blank spec: no package.
+
+```js
+import { isPluginPackage, pluginPackage, pluginShortName, themePackage } from '@nera-static/plugin-utils/packages'
+
+isPluginPackage('@nera-static/plugin-tags')    // true
+isPluginPackage('@nera-static/plugin-utils')   // false
+isPluginPackage('@nera-static/theme-blog')     // false
+
+pluginShortName('@nera-static/plugin-tags')    // 'plugin-tags'
+
+pluginPackage('sitemap')          // { name: 'sitemap', pkg: '@nera-static/plugin-sitemap' }
+pluginPackage('plugin-sitemap')   // the same
+pluginPackage('utils')            // throws TypeError: "utils" is not a Nera plugin. …
+
+themePackage('blog')              // '@nera-static/theme-blog'
+themePackage('@acme/theme-x')     // '@acme/theme-x'
+themePackage('./theme')           // null
+```
+
 ### `/guard` — failing loudly on a too-old core
 
 A plugin that relies on a hook of a newer `@nera-static/core` (`getAssets` since 4.13.0) is silently never called on an older one, and the build still exits 0. Check core's version from `getAppData` and fail loudly instead; `peerDependencies` reports the same at install time, the guard catches an install that ignored it.
@@ -360,6 +402,303 @@ satisfiesFloor('4.13.0', '4.13.0')          // true
 satisfiesFloor(' 4.14.2 ', '4.13.0')        // true
 satisfiesFloor('4.13.0-beta.1', '4.13.0')   // false
 satisfiesFloor('latest', '4.13.0')          // false
+```
+
+### `/html` — escaping
+
+Each escaper takes any value: `null` and `undefined` give `''`, everything else is converted with `String()` first. Each escapes once (`&amp;` becomes `&amp;amp;`).
+
+#### `escapeHtml(value: unknown): string`
+
+`& < > " '` as entities (`'` as `&#39;`), safe in a text node and in a double- or single-quoted attribute.
+
+#### `escapeXml(value: unknown): string`
+
+`& < > " '` as entities (`'` as `&apos;`), and the characters XML 1.0 forbids even escaped (C0 controls other than tab, LF and CR; lone surrogates; U+FFFE and U+FFFF) **dropped**, so any page text gives a well-formed feed or sitemap.
+
+#### `escapeRegExp(value: unknown): string`
+
+Every regular-expression special character (`. * + ? ^ $ { } ( ) | [ ] \`) escaped, for a `RegExp` that matches the text literally.
+
+```js
+import { escapeHtml, escapeRegExp, escapeXml } from '@nera-static/plugin-utils/html'
+
+escapeHtml('<a href="x">Tom & Jerry\'s</a>')
+// '&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&#39;s&lt;/a&gt;'
+escapeHtml(null)                       // ''
+escapeHtml(42)                         // '42'
+escapeXml('Tom & Jerry\'s\u0007')      // 'Tom &amp; Jerry&apos;s' (the BEL is dropped)
+escapeRegExp('a.b*(c)')                // 'a\\.b\\*\\(c\\)'
+```
+
+### `/lang` — languages and translated values
+
+A language is text, **trimmed**: `lang: 'de '` is `de`, and a blank `lang` counts as absent.
+
+#### `siteLang(app, fallback = 'en'): string`
+
+`app.lang` trimmed, else `fallback`.
+
+#### `pageLang(meta, app, fallback = 'en'): string`
+
+`meta.lang` trimmed, else `siteLang(app, fallback)`.
+
+#### `siteLanguages(app): Set<string>`
+
+`app.lang` plus the keys of `app.translations`, each trimmed, blank ones left out. Empty when the site sets neither.
+
+#### `isLanguageMap(value: unknown, languages?: Iterable<string>): boolean`
+
+Whether `value` is a non-empty plain object and, when `languages` is given, every key is one of them. A map lacking a language still counts (`localize` falls back).
+
+#### `localize(value: unknown, lang: string, { fallbacks = [], any = false } = {}): string | null`
+
+One value in one language. A string is returned as it is. A language map gives its entry for `lang`, else for the first of `fallbacks` it has, else, with `any`, its first entry; only text entries count, so `de: ''` falls back. Anything else, and a map without a usable entry, gives **`null`** (not `undefined`).
+
+```js
+import { isLanguageMap, localize, pageLang, siteLang, siteLanguages } from '@nera-static/plugin-utils/lang'
+
+siteLang({ lang: ' de ' })                         // 'de'
+siteLang({})                                       // 'en'
+pageLang({ lang: 'de ' }, { lang: 'en' })          // 'de'
+pageLang({ lang: '  ' }, { lang: 'fr' })           // 'fr'
+siteLanguages({ lang: 'en', translations: { de: {}, ' es ': {} } })   // Set { 'en', 'de', 'es' }
+isLanguageMap({ en: 'a', xx: 'b' }, ['en', 'de'])  // false
+
+localize({ en: 'Hi', de: 'Hallo' }, 'de')          // 'Hallo'
+localize({ en: 'Hi' }, 'de')                       // null
+localize({ en: 'Hi' }, 'de', { fallbacks: ['en'] })   // 'Hi'
+localize({ fr: 'Salut' }, 'de', { any: true })     // 'Salut'
+localize('Hi', 'de')                               // 'Hi'
+```
+
+### `/dates` — frontmatter dates
+
+Nothing here reads the build machine's time zone: a time without an offset is read as **UTC**, as YAML reads an unquoted timestamp, so a site gives the same dates and the same order on every machine.
+
+#### `toDate(value: unknown): Date | null`
+
+A valid `Date` (core parses an unquoted frontmatter date into one), or a string `YYYY-MM-DD`, optionally followed by `T` or a space and `hh:mm[:ss[.fraction]]` with an optional `Z` or `±hh:mm` offset (surrounding whitespace ignored). A day or time that does not exist (`2026-02-30`, `24:00`) is `null`, as is every other form (`1.10.2026`, a number, an offset like `+0200`).
+
+#### `formatW3C(value: unknown): string | null`
+
+The date in W3C Datetime form, in UTC: `YYYY-MM-DD` for UTC midnight, else `YYYY-MM-DDThh:mm:ssZ` without milliseconds. Takes whatever `toDate` takes; `null` when that is no date.
+
+#### `PUBLISHED_KEYS`
+
+`['date', 'datePublished', 'published']`, frozen: the keys `pageDate(meta, 'published')` tries, in order.
+
+#### `UPDATED_KEYS`
+
+`['updated', 'updatedAt', 'lastmod', 'dateModified']`, frozen: the keys `pageDate(meta, 'updated')` tries, in order.
+
+**`createdAt` is in neither list**: core fills it from the file's birth time when the frontmatter has no date, and CI stamps every file alike. A caller that wants it as a fallback for sorting passes it to `byDate` itself.
+
+#### `pageDate(meta, kind: 'published' | 'updated', { warn = console.warn } = {}): Date | null`
+
+The first key of the list for `kind` whose value is a usable date; `null` when none is. A present value that is no date warns once (`<href>: ignoring <key> <value>, expected a date like …`) and the next key is tried; an absent, `null` or blank value is skipped silently. Pass your logger's `warn`. Any other `kind` throws a `TypeError`.
+
+#### `byDate(get, { descending = false } = {}): (a, b) => number`
+
+A comparator for `Array.prototype.sort`: `get(item)` returns the item's date in any form `toDate` takes. Oldest first, newest first with `descending`; items without a usable date go **last in both directions**. Equal dates give `0`, so chain a tie-break (`byDate(get)(a, b) || byHref(a, b)`). Throws a `TypeError` when `get` is not a function.
+
+```js
+import { byDate, formatW3C, pageDate, toDate } from '@nera-static/plugin-utils/dates'
+import { createLogger } from '@nera-static/plugin-utils/log'
+
+toDate('2026-10-01')                    // 2026-10-01T00:00:00.000Z
+toDate('2026-10-01 09:30')              // 2026-10-01T09:30:00.000Z (UTC)
+toDate('2026-10-01T09:30:00+02:00')     // 2026-10-01T07:30:00.000Z
+toDate('2026-02-30')                    // null
+
+formatW3C('2026-10-01')                       // '2026-10-01'
+formatW3C('2026-10-01T09:30:15.250+02:00')    // '2026-10-01T07:30:15Z'
+
+const log = createLogger('plugin-feed')
+pageDate({ href: '/a.html', date: '2026-02-30', published: '2026-10-01' }, 'published', { warn: log.warn })
+// 2026-10-01T00:00:00.000Z, after
+// ⚠️ plugin-feed: /a.html: ignoring date "2026-02-30", expected a date like 2026-10-01 or 2026-10-01T09:30:00Z
+
+pagesData.sort(byDate((page) => page.meta.date, { descending: true }))
+// newest first, pages without a date at the end
+```
+
+### `/sort` — locale-free comparators
+
+They compare UTF-16 code units, like `<` on strings, never with `localeCompare`: the order is the same on every machine (uppercase before lowercase, ASCII before other letters).
+
+#### `byString(a: unknown, b: unknown): -1 | 0 | 1`
+
+Two strings by code unit; a non-string compares as `''` and sorts first.
+
+#### `byHref(a, b): -1 | 0 | 1`
+
+Two pages (`{ meta }`) or two metas by `href` (`x.meta?.href ?? x.href`), as `byString`.
+
+```js
+import { byHref, byString } from '@nera-static/plugin-utils/sort'
+
+['b', 'B', 'a', 'ä'].sort(byString)    // ['B', 'a', 'b', 'ä']
+pagesData.sort(byHref)                 // by meta.href
+```
+
+### `/urls` — origin, absolute URLs, `base_path`, containment, `srcset`
+
+Absolute URLs are percent-encoded, so a canonical link, a sitemap `<loc>` and a feed `<link>` of the same page are the same string. The `base_path` helpers give exactly core's output.
+
+#### `resolveOrigin({ cwd = process.cwd(), app } = {}): string`
+
+`app.origin`, else `app_origin` from the site's `config/canonical-links.yaml` (`app.folders.config` honoured), without surrounding whitespace and trailing slashes; `''` when neither is set. The file is only read when `app.origin` is blank or missing.
+
+#### `encodePath(value: unknown): string`
+
+`value` with everything a URL may not contain percent-encoded (space, non-ASCII, a `%` that starts no valid escape), while valid `%XX` escapes and URL delimiters stay, so an encoded path is not encoded twice. A lone surrogate becomes `%EF%BF%BD`; `null`/`undefined` give `''`.
+
+#### `joinUrl(origin: string, basePath: string, href: string): string`
+
+The absolute URL of a page: `origin` + `basePath` + `href` (`meta.href`), the path encoded by `encodePath`, otherwise verbatim (`/index.html` stays).
+
+#### `siteUrl(origin: string, basePath?: string): string`
+
+The site's own URL, `origin` + `basePath` without trailing slashes, encoded like `joinUrl`. A non-string `basePath` gives `origin`.
+
+#### `normalizeBasePath(raw: unknown): string`
+
+`base_path` from `config/app.yaml` as core normalises it into `app.basePath`: a non-string, blank text or `/` gives `''`; otherwise trimmed, trailing slashes dropped, one leading slash guaranteed.
+
+#### `withBasePath(url: unknown, basePath: string): unknown`
+
+`url` under `basePath`, as core prefixes every root-absolute URL of a built page. Only a string starting with a single `/` is prefixed; `//cdn/…`, a URL with a scheme, a relative URL, a non-string and a value already under `basePath` come back unchanged, so applying it twice is harmless.
+
+#### `stripBasePath(url: unknown, basePath: string): unknown`
+
+The inverse: `basePath` itself gives `'/'`, `basePath/…` loses the prefix, anything else (`/subway` for `/sub`) comes back unchanged.
+
+#### `hasScheme(url: unknown): boolean`
+
+Whether `url` starts with a scheme (`https:`, `mailto:`, `data:`, any case). `//host/…` has none.
+
+#### `isInside(root: string, target: string, { self = true } = {}): boolean`
+
+Whether the path `target` is `root` or lies below it, compared after `path.resolve` (symlinks not followed). A child folder named `..foo` is inside; `/site/publication` is not inside `/site/public`. With `self: false`, `root` itself does not count.
+
+#### `srcsetUrls(value: unknown): string[]`
+
+The URLs of a `srcset`, by the HTML standard's candidate rule: a URL ends at whitespace, so a comma inside it (`?w=1,2`, a data URI) does not split it. A non-string gives `[]`.
+
+#### `mapSrcset(value: unknown, fn: (url, index) => unknown): unknown`
+
+`value` with each candidate URL replaced by `fn(url, index)`; descriptors, commas and whitespace are kept byte for byte. A non-string comes back unchanged.
+
+```js
+import {
+    encodePath, hasScheme, isInside, joinUrl, mapSrcset, normalizeBasePath,
+    resolveOrigin, siteUrl, srcsetUrls, stripBasePath, withBasePath,
+} from '@nera-static/plugin-utils/urls'
+
+resolveOrigin({ app: { origin: ' https://ex.com/ ' } })   // 'https://ex.com'
+
+encodePath('/über uns.html')                     // '/%C3%BCber%20uns.html'
+encodePath('/%C3%BCber.html')                    // '/%C3%BCber.html'
+joinUrl('https://ex.com', '/sub', '/über uns.html')   // 'https://ex.com/sub/%C3%BCber%20uns.html'
+siteUrl('https://ex.com', '/sub/')               // 'https://ex.com/sub'
+
+normalizeBasePath('nera-website/')               // '/nera-website'
+normalizeBasePath('/')                           // ''
+withBasePath('/css/main.css', '/sub')            // '/sub/css/main.css'
+withBasePath('/sub/a.html', '/sub')              // '/sub/a.html'
+withBasePath('//cdn.example.com/x.js', '/sub')   // '//cdn.example.com/x.js'
+stripBasePath('/sub/a.html', '/sub')             // '/a.html'
+stripBasePath('/subway', '/sub')                 // '/subway'
+hasScheme('mailto:x@y.z')                        // true
+
+isInside('/site/public', '/site/public/a.html')         // true
+isInside('/site/public', '/site/public', { self: false })   // false
+isInside('/site/public', '/site/publication')           // false
+
+srcsetUrls('/a.jpg?w=1,2 1x, /b.jpg 2x')         // ['/a.jpg?w=1,2', '/b.jpg']
+mapSrcset('/a.jpg 1x, /b.jpg 2x', (url) => withBasePath(url, '/sub'))
+// '/sub/a.jpg 1x, /sub/b.jpg 2x'
+```
+
+### `/frontmatter` — how core reads a page's frontmatter
+
+Both mirror `@nera-static/core`, so a page the validator or an editor accepts parses the same way in the build.
+
+#### `FRONTMATTER_OPTIONS`
+
+The frozen `yaml` parse options core uses: `{ schema: 'core', customTags: ['timestamp'], merge: true, uniqueKeys: false }` — unquoted dates become `Date` objects, `<<` merge keys work, a repeated key takes the last value. Pass them to `yaml.parse` from your own `yaml` dependency; this package does not depend on `yaml`.
+
+#### `splitFrontmatter(raw: string): { yamlText: string, body: string } | null`
+
+A page file split by core's rule: CRLF and a lone CR read as LF, the first line must be exactly `---`, the next line that is exactly `---` closes the block (`----` or `--- ` do not). Without a closing line the rest is YAML and the body is empty; an empty block gives `yamlText: ''`. **`null`** when the file has no frontmatter (first line not `---`, a leading BOM or indentation, or `raw` not a string).
+
+```js
+import { parse } from 'yaml'
+import { FRONTMATTER_OPTIONS, splitFrontmatter } from '@nera-static/plugin-utils/frontmatter'
+
+splitFrontmatter('---\r\ntitle: Hi\r\n---\r\n# Body\r\n')   // { yamlText: 'title: Hi', body: '# Body\n' }
+splitFrontmatter('# no frontmatter')                         // null
+splitFrontmatter('---\n---\nx')                              // { yamlText: '', body: 'x' }
+
+const parts = splitFrontmatter(raw)
+const meta = parts ? parse(parts.yamlText, FRONTMATTER_OPTIONS) ?? {} : {}
+```
+
+### `/glob` — exclude patterns and `.neraignore`
+
+Two rule sets, kept apart on purpose: the `*` glob of the sitemap and feed `exclude` lists, and core's `.neraignore` rule, which knows no wildcards.
+
+#### `matchesPattern(href: unknown, pattern: unknown): boolean`
+
+`*` matches any run of characters (`/` included, none at all), everything else is literal, anchored at both ends. A non-string never matches.
+
+#### `matchesAny(href: unknown, patterns: unknown[] = []): boolean`
+
+Whether `href` matches any of `patterns`; a non-array matches nothing.
+
+#### `IGNORE_FILE`
+
+`'.neraignore'`, the file name `readIgnoreList` reads from the site root.
+
+#### `readIgnoreList(cwd = process.cwd()): string[]`
+
+The patterns in the site's `.neraignore`, one per line, trimmed, blank lines dropped; `[]` when the file does not exist. Read from the site root, as core reads it.
+
+#### `isIgnoredAsset(ignoreList: string[], file: string, root: string): boolean`
+
+Whether core's asset copy skips `file`: its path relative to `root` (the assets folder), with `/` separators, equals a pattern or starts with a pattern plus `/`. So `images` skips `images/a.png`, `images/` skips nothing, and `robots` does not skip `robots.txt`.
+
+```js
+import { isIgnoredAsset, matchesAny, matchesPattern, readIgnoreList } from '@nera-static/plugin-utils/glob'
+
+matchesPattern('/drafts/a.html', '/drafts/*')            // true
+matchesPattern('/drafts/a.html', '/drafts')              // false
+matchesAny('/404.html', ['/404.html', '/drafts/*'])      // true
+
+const ignored = readIgnoreList()                         // e.g. ['images', 'robots']
+isIgnoredAsset(['images'], '/site/assets/images/a.png', '/site/assets')    // true
+isIgnoredAsset(['robots'], '/site/assets/robots.txt', '/site/assets')      // false
+```
+
+### `/pages` — which pages a plugin acts on
+
+#### `isRenderedPage(meta): boolean`
+
+Whether core renders the page: a non-blank `layout` and `href`. Core skips a page without `layout` silently, so a sitemap, feed or search index listing it points at nothing.
+
+#### `isNoindex(meta, app): boolean`
+
+Whether the page asks search engines not to index it: `meta.robots`, or `app.robots` when the page sets none, contains `noindex` in any case.
+
+```js
+import { isNoindex, isRenderedPage } from '@nera-static/plugin-utils/pages'
+
+isRenderedPage({ layout: 'pages/default.pug', href: '/a.html' })   // true
+isRenderedPage({ href: '/a.html' })                                // false
+isNoindex({ robots: 'NoIndex, follow' }, {})                       // true
+isNoindex({}, { robots: 'noindex' })                               // true
+isNoindex({ robots: 'index' }, { robots: 'noindex' })              // false
 ```
 
 ---
