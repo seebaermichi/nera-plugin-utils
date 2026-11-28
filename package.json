@@ -1,7 +1,7 @@
 {
     "name": "@nera-static/plugin-utils",
-    "version": "1.8.0",
-    "description": "Shared helpers for Nera plugins and tools: config loading, template publishing, and subpath exports for values, logging, languages, dates, URLs and base_path, escaping, frontmatter, globs, package names and pages",
+    "version": "1.9.0",
+    "description": "Shared helpers for Nera plugins and tools: config loading, template publishing, and subpath exports for values, logging, languages, dates, URLs and base_path, escaping, frontmatter, globs, package names, pages and file listing",
     "main": "index.js",
     "type": "module",
     "repository": {
@@ -54,7 +54,8 @@
         "./urls": "./src/urls.js",
         "./frontmatter": "./src/frontmatter.js",
         "./glob": "./src/glob.js",
-        "./pages": "./src/pages.js"
+        "./pages": "./src/pages.js",
+        "./files": "./src/files.js"
     },
     "files": [
         "index.js",

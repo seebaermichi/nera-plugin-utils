@@ -175,7 +175,7 @@ process.exit(result ? 0 : 1)
 
 ## 🧩 Shared helpers (subpath exports)
 
-Since 1.7.0 the helpers that Nera plugins, core and the tools used to copy from each other live here, one subpath per family (1.8.0 added `/html` to `/pages`). Import them from the subpath, never write a local copy. The `.` export above is unchanged. None of them prints unless that is its job (the logger, `pageDate`'s warning), reads globals beyond a `cwd` default of `process.cwd()`, or calls `process.exit`.
+Since 1.7.0 the helpers that Nera plugins, core and the tools used to copy from each other live here, one subpath per family (1.8.0 added `/html` to `/pages`, 1.9.0 `/files`). Import them from the subpath, never write a local copy. The `.` export above is unchanged. None of them prints unless that is its job (the logger, `pageDate`'s warning), reads globals beyond a `cwd` default of `process.cwd()`, or calls `process.exit`.
 
 | Subpath | Exports |
 |---|---|
@@ -192,6 +192,7 @@ Since 1.7.0 the helpers that Nera plugins, core and the tools used to copy from 
 | `@nera-static/plugin-utils/frontmatter` | `FRONTMATTER_OPTIONS`, `splitFrontmatter` |
 | `@nera-static/plugin-utils/glob` | `matchesPattern`, `matchesAny`, `IGNORE_FILE`, `readIgnoreList`, `isIgnoredAsset` |
 | `@nera-static/plugin-utils/pages` | `isRenderedPage`, `isNoindex` |
+| `@nera-static/plugin-utils/files` | `walkFiles` |
 
 ### `/values` — checks for parsed YAML and frontmatter
 
@@ -699,6 +700,26 @@ isRenderedPage({ href: '/a.html' })                                // false
 isNoindex({ robots: 'NoIndex, follow' }, {})                       // true
 isNoindex({}, { robots: 'noindex' })                               // true
 isNoindex({ robots: 'index' }, { robots: 'noindex' })              // false
+```
+
+### `/files` — listing the files under a folder
+
+#### `walkFiles(dir: string, { dotfiles = false, ext, relative = false } = {}): string[]`
+
+Every regular file under `dir`, synchronously, depth first, the entries of each folder in byte order (so `a/z.md` comes before `a.md`, and `B.md` before `a.md`), the same on every machine. Symbolic links are followed: a linked file is listed under the link's name, a linked folder is walked (under each name it is linked by), a dangling link is skipped, and a link back to a folder already being walked is not entered again. A `dir` that does not exist or is no folder gives `[]`.
+
+-   `dotfiles`: list names starting with `.`; when `false` (the default) a dot folder is not entered either.
+-   `ext`: keep only files with this extension, or one of a list, compared exactly with `path.extname` (`'.md'`, not `'md'`).
+-   `relative`: paths relative to `dir`, with the platform separator, instead of absolute ones.
+
+With the defaults and `relative: true` it lists a pages folder as core does; with `dotfiles: true` it lists an assets folder as core copies it (core then drops OS junk such as `.DS_Store` by name).
+
+```js
+import { walkFiles } from '@nera-static/plugin-utils/files'
+
+walkFiles('pages', { relative: true })                   // ['blog/post.md', 'index.md']
+walkFiles('pages', { relative: true, ext: '.md' })       // only Markdown files
+walkFiles('/site/assets', { dotfiles: true })            // ['/site/assets/.well-known/security.txt', '/site/assets/css/main.css']
 ```
 
 ---

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-11-28
+
+### Added
+
+-   **`@nera-static/plugin-utils/files`**: `walkFiles(dir, { dotfiles, ext,
+    relative })`, the one recursive file listing for core's pages folder
+    (dotfiles skipped, names relative to the folder, as `fs-readdir-recursive`
+    gave them) and its asset copy (`dotfiles: true`, absolute paths). It is
+    synchronous and lists depth first, each folder's entries in byte order;
+    it follows symbolic links, skips dangling ones, does not loop on a link
+    back to an ancestor, and gives `[]` for a missing folder. No runtime
+    dependency was added
+
 ## [1.8.0] - 2026-11-27
 
 The second half of the helpers Nera plugins, core and the tools copy from

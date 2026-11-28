@@ -20,10 +20,10 @@ const shipped = (target) => {
 const hasHeading = (name) => new RegExp(`^#### \`${escapeRegExp(name)}(?![\\w$])`, 'm').test(readme)
 
 describe('package exports', () => {
-    it('declares the 1.8.0 subpaths', () => {
+    it('declares the 1.9.0 subpaths', () => {
         expect(Object.keys(pkg.exports)).toEqual(expect.arrayContaining([
             '.', './values', './log', './config', './packages', './guard',
-            './html', './lang', './dates', './sort', './urls', './frontmatter', './glob', './pages',
+            './html', './lang', './dates', './sort', './urls', './frontmatter', './glob', './pages', './files',
         ]))
     })
 
